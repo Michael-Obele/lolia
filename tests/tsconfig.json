@@ -1,0 +1,34 @@
+// The tests run on Bun, so they need Bun's globals (`bun:test`, `node:fs`) — the
+// same reason `scripts/` has its own project. Two consequences, both wanted:
+//
+//   1. `src/` keeps typing against the browser alone. If test types leaked into
+//      the app tsconfig, `src/` could call `Bun.file` and still type-check even
+//      though that code is bundled for the web and would crash.
+//   2. `svelte-check` walks the root tsconfig, so the tests stay out of its run.
+//
+// It lives in `tests/` for the same editor reason as `scripts/tsconfig.json`: the
+// language server uses the nearest tsconfig, so this is what types a test file.
+{
+	"compilerOptions": {
+		"target": "ESNext",
+		"lib": ["ESNext"],
+		"module": "Preserve",
+		"moduleResolution": "bundler",
+		"moduleDetection": "force",
+		"allowImportingTsExtensions": true,
+		"resolveJsonModule": true,
+		"verbatimModuleSyntax": true,
+		"isolatedModules": true,
+		"esModuleInterop": true,
+		"forceConsistentCasingInFileNames": true,
+
+		// `bun:test` and the Bun global come from here. Nothing else is loaded, so
+		// a browser-only API still fails to compile.
+		"types": ["bun"],
+
+		"strict": true,
+		"noEmit": true,
+		"skipLibCheck": true
+	},
+	"include": ["**/*.ts"]
+}

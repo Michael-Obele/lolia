@@ -5,6 +5,17 @@
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<meta name="text-scale" content="scale" />
+		<script>
+			// First paint has to match the stored choice: without this the shipped
+			// `class="dark"` paints dark and then flips to light once the app hydrates.
+			try {
+				if (localStorage.getItem('lolia.theme') === 'light') {
+					document.documentElement.classList.remove('dark');
+				}
+			} catch {
+				// Storage blocked: keep the shipped default rather than throwing.
+			}
+		</script>
 		%sveltekit.head%
 	</head>
 	<body data-sveltekit-preload-data="hover">
