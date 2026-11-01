@@ -1,0 +1,350 @@
+<script lang="ts">
+	import { goto } from '$app/navigation';
+	import { humanCategory } from '#lib/components/table/model.ts';
+	import type { Element } from '#lib/data/types.ts';
+	import {
+		NOT_KNOWN,
+		decimal,
+		densityUnit,
+		formatKelvin,
+		formatMass,
+		formatPicometres,
+		formatPlain,
+		notKnownTitle
+	} from '#lib/format/units.ts';
+	import ShellDiagram from './ShellDiagram.svelte';
+	import Stat from './Stat.svelte';
+
+	let { element }: { element: Element } = $props();
+
+	let heading: HTMLHeadingElement | undefined = $state();
+
+	// The panel is not a dialog: nothing is trapped, the close control is a real
+	// link back to the table, and Escape does what the link does. The listener is
+	// attached by hand because `svelte:window` did not receive a trusted Escape
+	// here, and a key that sometimes does nothing is worse than four extra lines.
+	$effect(() => {
+		const onkeydown = (event: KeyboardEvent) => {
+			if (event.key === 'Escape') goto('/');
+		};
+		window.addEventListener('keydown', onkeydown);
+		return () => window.removeEventListener('keydown', onkeydown);
+	});
+
+	// Opening the panel moves focus to its heading, so a keyboard Enter on a cell
+	// lands somewhere with a name instead of back at the top of the document.
+	// `preventScroll` keeps the page behind it still.
+	$effect(() => {
+		if (element.symbol && heading) heading.focus({ preventScroll: true });
+	});
+
+	const configuration = $derived(
+		element.electronConfigurationSemantic ?? element.electronConfiguration
+	);
+
+	const ionization = $derived(
+		element.ionizationEnergies.length
+			? element.ionizationEnergies.map((value) => decimal(value, 3)).join(', ')
+			: null
+	);
+
+	// `unknown` is the data saying it does not know, which is a null in the UI.
+	const phase = $derived(element.phase === 'unknown' ? null : element.phase);
+
+	const radii = $derived([
+		{ label: 'empirical radius', value: element.radii.empirical },
+		{ label: 'calculated radius', value: element.radii.calculated },
+		{ label: 'van der Waals radius', value: element.radii.vanDerWaals },
+		{ label: 'covalent radius, single bond', value: element.radii.covalentSingle },
+		{ label: 'covalent radius, triple bond', value: element.radii.covalentTriple },
+		{ label: 'metallic radius', value: element.radii.metallic }
+	]);
+</script>
+
+<!-- Named for the element, not for the component: a screen reader user hears
+     "Iron, symbol Fe" when the panel opens. -->
+<section class="panel" aria-label="{element.name}, symbol {element.symbol}">
+	<div class="grabber" aria-hidden="true"></div>
+
+	<header class="head">
+		<div class="ident">
+			<p class="index">{element.number}</p>
+			<p class="symbol">{element.symbol}</p>
+		</div>
+		<div class="titles">
+			<h2 class="name" tabindex="-1" bind:this={heading}>{element.name}</h2>
+			<p class="category">{humanCategory(element.category)}</p>
+		</div>
+		<a class="close" href="/">Close</a>
+	</header>
+
+	<div class="body">
+		<section class="group">
+			<h3 class="legend">identity</h3>
+			<dl>
+				<Stat label="atomic number" value={formatPlain(element.number)} />
+				<Stat label="category" value={humanCategory(element.category)} />
+				<Stat label="block" value={element.block} />
+				<Stat label="group" value={formatPlain(element.group)} />
+				<Stat label="period" value={formatPlain(element.period)} />
+				<Stat label="phase" value={phase} />
+			</dl>
+		</section>
+
+		<section class="group">
+			<h3 class="legend">physical</h3>
+			<dl>
+				<Stat label="atomic mass" value={formatMass(element.mass)} />
+				<Stat
+					label="density"
+					value={formatPlain(element.density?.value ?? null)}
+					unit={densityUnit(element.density?.unit ?? null)}
+				/>
+				<Stat label="melting point" value={formatKelvin(element.meltingPoint)} />
+				<Stat label="boiling point" value={formatKelvin(element.boilingPoint)} />
+				<Stat label="electronegativity" value={formatPlain(element.electronegativity)} />
+				<Stat label="electron affinity" value={formatPlain(element.electronAffinity)} />
+			</dl>
+		</section>
+
+		<section class="group">
+			<h3 class="legend">atomic</h3>
+			<dl>
+				<Stat
+					label="electrons per shell"
+					value={element.shells.length ? element.shells.join(', ') : null}
+				/>
+				<Stat label="electron configuration" value={configuration} />
+				<Stat label="ionization energies" value={ionization} />
+				{#each radii as row (row.label)}
+					<Stat label={row.label} value={formatPicometres(row.value)} />
+				{/each}
+			</dl>
+			<ShellDiagram shells={element.shells} symbol={element.symbol} name={element.name} />
+		</section>
+
+		<section class="group">
+			<h3 class="legend">history</h3>
+			<dl>
+				<Stat label="discovered by" value={element.discoveredBy} />
+				<Stat label="named by" value={element.namedBy} />
+				<div class="source-row">
+					<dt>source</dt>
+					<dd>
+						{#if element.source}
+							<a href={element.source}>Wikipedia</a>
+						{:else}
+							<span class="empty" title={notKnownTitle('source')}>{NOT_KNOWN}</span>
+						{/if}
+					</dd>
+				</div>
+			</dl>
+		</section>
+
+		<section class="group">
+			{#if element.summary}
+				<p class="summary">{element.summary}</p>
+			{:else}
+				<p class="summary empty" title={notKnownTitle('summary')}>{NOT_KNOWN}</p>
+			{/if}
+			<!-- The licence lives on /about; repeating it here would be the third copy. -->
+			<p class="attrib"><a href="/about">Attribution</a></p>
+		</section>
+	</div>
+</section>
+
+<style>
+	/*
+	 * One breakpoint drives the whole panel. Below 720 px it is a surface pinned to
+	 * the bottom of the viewport — the shape the later sheet task grows out of.
+	 * At and above 720 px it is the column beside the table. No JS, one component.
+	 */
+	.panel {
+		position: fixed;
+		inset-inline: 0;
+		inset-block-end: 0;
+		z-index: 10;
+		display: flex;
+		flex-direction: column;
+		max-block-size: 88dvh;
+		background: var(--surface-raised);
+		border-block-start: 1px solid var(--line);
+		border-start-start-radius: var(--radius);
+		border-start-end-radius: var(--radius);
+		padding-block-end: env(safe-area-inset-bottom);
+	}
+
+	@media (min-width: 720px) {
+		.panel {
+			position: sticky;
+			inset-block: 1rem auto;
+			inset-inline: auto;
+			/* A definite width, not a percentage: the panel sits in an `auto` grid
+			   track, and a percentage there makes the track size to the prose. */
+			inline-size: 20rem;
+			max-inline-size: 100%;
+			max-block-size: calc(100dvh - 2rem);
+			border: 1px solid var(--line);
+			border-radius: var(--radius);
+			padding-block-end: 0;
+		}
+	}
+
+	/* The drag affordance. The gesture is a later task; the handle is here now so
+	   the surface already reads as something that moves. */
+	.grabber {
+		flex: none;
+		inline-size: 2.5rem;
+		block-size: 0.25rem;
+		margin: 0.5rem auto 0.25rem;
+		border-radius: 999px;
+		background: var(--ink-faint);
+	}
+
+	@media (min-width: 720px) {
+		.grabber {
+			display: none;
+		}
+	}
+
+	.head {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: flex-start;
+		gap: 0.5rem 0.75rem;
+		padding: 0.25rem 1rem 0.75rem;
+		border-block-end: 1px solid var(--line);
+	}
+
+	.ident {
+		text-align: center;
+	}
+
+	.index,
+	.symbol {
+		font-family: var(--font-data);
+		font-variant-numeric: tabular-nums;
+	}
+
+	.index {
+		font-size: var(--text-xs);
+		color: var(--ink-faint);
+	}
+
+	.symbol {
+		font-family: var(--font-display);
+		font-size: var(--text-2xl);
+		font-weight: 700;
+		line-height: 1;
+	}
+
+	.titles {
+		flex: 1 1 8rem;
+		min-inline-size: 0;
+	}
+
+	.name {
+		font-family: var(--font-display);
+		font-size: var(--text-xl);
+		font-weight: 600;
+		line-height: 1.1;
+		overflow-wrap: break-word;
+	}
+
+	.name:focus-visible {
+		outline: 2px solid var(--ink);
+		outline-offset: 2px;
+	}
+
+	.category {
+		font-size: var(--text-sm);
+		color: var(--ink-dim);
+	}
+
+	.close {
+		display: grid;
+		place-items: center;
+		min-block-size: 2.75rem;
+		min-inline-size: 2.75rem;
+		border: 1px solid var(--line);
+		border-radius: var(--radius);
+		color: var(--ink);
+		font-size: var(--text-sm);
+		text-decoration: none;
+	}
+
+	.close:focus-visible {
+		outline: 2px solid var(--ink);
+		outline-offset: 2px;
+	}
+
+	/* The only scroll container in the app: overscroll stays inside it, so reading
+	   the panel never moves the table behind it. */
+	.body {
+		min-block-size: 0;
+		overflow-y: auto;
+		overscroll-behavior: contain;
+		padding: 0.75rem 1rem 1rem;
+	}
+
+	dl {
+		margin: 0;
+	}
+
+	.source-row {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: 0 0.75rem;
+	}
+
+	.source-row dt {
+		flex: 0 1 auto;
+		min-inline-size: 0;
+		color: var(--ink-dim);
+		font-size: var(--text-sm);
+	}
+
+	.source-row dd {
+		flex: 1 1 auto;
+		min-inline-size: min-content;
+		margin: 0;
+		font-size: var(--text-sm);
+		text-align: end;
+		overflow-wrap: break-word;
+	}
+
+	.group + .group {
+		margin-block-start: 1rem;
+		padding-block-start: 1rem;
+		border-block-start: 1px solid var(--line);
+	}
+
+	.legend {
+		font-size: var(--text-xs);
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		color: var(--ink-faint);
+		margin-block-end: 0.375rem;
+	}
+
+	.summary {
+		font-family: var(--font-prose);
+		font-size: var(--text-base);
+		line-height: 1.55;
+	}
+
+	.attrib {
+		margin-block-start: 0.5rem;
+		font-size: var(--text-sm);
+	}
+
+	.empty {
+		color: var(--ink-faint);
+	}
+
+	a {
+		color: var(--ink);
+	}
+</style>
