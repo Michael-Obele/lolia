@@ -1,18 +1,17 @@
 <script lang="ts">
-	// Placeholder screen for milestone M0, now proving M1: the count comes from
-	// the generated data, so nothing here knows how many elements exist.
-	// The real grid arrives in M2; colour comes from the design tokens.
+	import Grid from '#lib/components/table/Grid.svelte';
 	import { elements } from '#lib/data/elements.generated.ts';
 
 	const elementCount = elements.length;
 </script>
 
-<main class="grid min-h-dvh place-items-center bg-bg text-ink">
-	<div class="text-center">
-		<h1 class="font-mono text-6xl tracking-tight">Lolia</h1>
-		<p class="mt-3 text-sm text-ink-dim">The periodic table, made to be looked at.</p>
-		<p class="mt-10 font-mono text-xs uppercase tracking-widest text-ink-faint">
-			{elementCount} elements
-		</p>
-	</div>
+<main class="min-h-dvh bg-bg px-4 py-6 text-ink sm:px-6">
+	<header
+		class="mx-auto mb-6 flex max-w-[68rem] flex-wrap items-baseline justify-between gap-2"
+	>
+		<h1 class="font-display text-2xl font-bold tracking-tight">Lolia</h1>
+		<p class="font-data text-xs text-ink-faint">{elementCount} elements</p>
+	</header>
+
+	<Grid />
 </main>
