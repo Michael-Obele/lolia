@@ -64,8 +64,6 @@
 <!-- Named for the element, not for the component: a screen reader user hears
      "Iron, symbol Fe" when the panel opens. -->
 <section class="panel" aria-label="{element.name}, symbol {element.symbol}">
-	<div class="grabber" aria-hidden="true"></div>
-
 	<header class="head">
 		<div class="ident">
 			<p class="index">{element.number}</p>
@@ -155,23 +153,24 @@
 
 <style>
 	/*
-	 * One breakpoint drives the whole panel. Below 720 px it is a surface pinned to
-	 * the bottom of the viewport — the shape the later sheet task grows out of.
-	 * At and above 720 px it is the column beside the table. No JS, one component.
+	 * Placement belongs to whoever holds the panel: on a phone that is the sheet,
+	 * above the breakpoint it is the grid column beside the table. The panel
+	 * itself is only a column that fills its box, so neither side has to know
+	 * about the other's positioning.
 	 */
 	.panel {
-		position: fixed;
-		inset-inline: 0;
-		inset-block-end: 0;
-		z-index: 10;
 		display: flex;
 		flex-direction: column;
-		max-block-size: 88dvh;
+		/* The flex remainder, not 100%: a percentage height resolved a few pixels
+		   taller than the sheet's content box and pushed the last line into the
+		   safe-area padding. */
+		flex: 1 1 auto;
+		min-block-size: 0;
+		/* At the lowest snap on a short phone the scroller cannot shrink past its
+		   own 28 px of padding, so it overhangs by a few pixels. Clip it: the sheet
+		   keeps the home bar clear and the scroll area ends at the inset. */
+		overflow: hidden;
 		background: var(--surface-raised);
-		border-block-start: 1px solid var(--line);
-		border-start-start-radius: var(--radius);
-		border-start-end-radius: var(--radius);
-		padding-block-end: env(safe-area-inset-bottom);
 	}
 
 	@media (min-width: 720px) {
@@ -183,27 +182,10 @@
 			   track, and a percentage there makes the track size to the prose. */
 			inline-size: 20rem;
 			max-inline-size: 100%;
+			block-size: auto;
 			max-block-size: calc(100dvh - 2rem);
 			border: 1px solid var(--line);
 			border-radius: var(--radius);
-			padding-block-end: 0;
-		}
-	}
-
-	/* The drag affordance. The gesture is a later task; the handle is here now so
-	   the surface already reads as something that moves. */
-	.grabber {
-		flex: none;
-		inline-size: 2.5rem;
-		block-size: 0.25rem;
-		margin: 0.5rem auto 0.25rem;
-		border-radius: 999px;
-		background: var(--ink-faint);
-	}
-
-	@media (min-width: 720px) {
-		.grabber {
-			display: none;
 		}
 	}
 
@@ -271,6 +253,14 @@
 		color: var(--ink);
 		font-size: var(--text-sm);
 		text-decoration: none;
+	}
+
+	/* Below the breakpoint the sheet's handle owns the only close control, so the
+	   panel does not repeat it. */
+	@media (max-width: 719.98px) {
+		.close {
+			display: none;
+		}
 	}
 
 	.close:focus-visible {

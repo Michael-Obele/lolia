@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Inspector from '#lib/components/inspector/Inspector.svelte';
+	import Sheet from '#lib/components/sheet/Sheet.svelte';
 	import Grid from '#lib/components/table/Grid.svelte';
 	import { elements } from '#lib/data/elements.generated.ts';
 	import type { PageProps } from './$types';
@@ -22,7 +22,7 @@
 		<div class="table-slot">
 			<Grid />
 		</div>
-		<Inspector element={data.element} />
+		<Sheet element={data.element} />
 	</div>
 </main>
 
@@ -34,8 +34,8 @@
 		margin-inline: auto;
 	}
 
-	/* The table keeps the full width on a phone — the inspector floats over it.
-	   One breakpoint, the same 720 px the panel switches at, and the two columns
+	/* The table keeps the full width on a phone — the sheet floats over it. One
+	   breakpoint, the same 720 px the sheet switches at, and the two columns
 	   appear together. */
 	.stage {
 		display: grid;
