@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Element } from '#lib/data/types.ts';
 	import { categoryVar } from '#lib/design/category.ts';
+	import { stagger } from '#lib/motion/stagger.ts';
 	import { humanCategory } from './model.ts';
 
 	let { element, tabindex = -1 }: { element: Element; tabindex?: number } =
@@ -11,6 +12,10 @@
 	const label = $derived(
 		`${element.name}, symbol ${element.symbol}, atomic number ${element.number}, ${humanCategory(element.category)}`,
 	);
+
+	// Ignition runs hydrogen outward, in atomic number order, whatever the grid
+	// position is. The wait is capped, so element 119 never extends the show.
+	const delay = stagger(element.number - 1, 'ignition');
 </script>
 
 <a
@@ -24,6 +29,7 @@
 	style:grid-column={element.position.x}
 	style:grid-row={element.position.y}
 	style:--cat={categoryVar(element.category)}
+	style:--delay={delay}
 	class="cell"
 >
 	<span aria-hidden="true" class="stack">
@@ -43,6 +49,31 @@
 		background: var(--surface);
 		color: var(--ink);
 		text-decoration: none;
+		/* Press uses the instant token, hover the fast one, and the rail dim the
+		   base one: the interactions a hand repeats hundreds of times stay inside
+		   the 120 ms the motion budget allows. No duration is written here. */
+		transition:
+			transform var(--dur-instant) var(--ease-out),
+			border-inline-start-color var(--dur-fast) var(--ease-out),
+			opacity var(--dur-base) var(--ease-out);
+	}
+
+	/* Touch press. Declared before the hover block so that on a hover-capable
+	   pointer the pair below wins and the press does not drop the lift. */
+	.cell:active {
+		transform: scale(0.97);
+	}
+
+	/* Pointer only: on touch the lift would stick until the next tap. */
+	@media (hover: hover) {
+		.cell:hover {
+			transform: translateY(-2px);
+			border-inline-start-color: color-mix(in oklab, var(--cat) 72%, var(--ink));
+		}
+
+		.cell:active {
+			transform: translateY(-2px) scale(0.97);
+		}
 	}
 
 	/* The ring is never removed, only ever drawn on keyboard focus. */

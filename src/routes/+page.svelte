@@ -15,7 +15,9 @@
 		<p class="message" role="status">That element could not be shown.</p>
 	{/if}
 
-	<Grid />
+	<!-- The introduction belongs to this page: the grid on `/element/Xx` is a
+	     backdrop for the panel and must not replay it on every selection. -->
+	<Grid intro />
 </main>
 
 <style>

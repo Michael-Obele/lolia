@@ -12,12 +12,32 @@
 		formatPlain,
 		notKnownTitle
 	} from '#lib/format/units.ts';
+	import { takeOrigin, travel } from '#lib/motion/flip.ts';
+	import { motionOk } from '#lib/motion/reduced.ts';
+	import { stagger } from '#lib/motion/stagger.ts';
 	import ShellDiagram from './ShellDiagram.svelte';
 	import Stat from './Stat.svelte';
 
 	let { element }: { element: Element } = $props();
 
+	let header: HTMLElement | undefined = $state();
 	let heading: HTMLHeadingElement | undefined = $state();
+
+	// Measured on the cell at pointer down, on a wide screen, with motion welcome.
+	// Present means this panel was opened by a pointer, so a ghost is the honest
+	// way in; absent means keyboard or touch, where the fade is.
+	const origin = takeOrigin();
+	const enter = origin ? 'ghost' : motionOk() ? 'fade' : null;
+
+	// The panel is not shown until the wash has landed. It never animates itself.
+	let shown = $state(origin === null);
+	let travelled = false;
+
+	$effect(() => {
+		if (travelled || !origin || !header) return;
+		travelled = true;
+		travel(origin, header, () => (shown = true));
+	});
 
 	// The panel is not a dialog: nothing is trapped, the close control is a real
 	// link back to the table, and Escape does what the link does. The listener is
@@ -33,9 +53,10 @@
 
 	// Opening the panel moves focus to its heading, so a keyboard Enter on a cell
 	// lands somewhere with a name instead of back at the top of the document.
-	// `preventScroll` keeps the page behind it still.
+	// Waiting for `shown` keeps the ghost path from aiming focus at a heading that
+	// is still invisible, and `preventScroll` keeps the page behind it still.
 	$effect(() => {
-		if (element.symbol && heading) heading.focus({ preventScroll: true });
+		if (shown && element.symbol && heading) heading.focus({ preventScroll: true });
 	});
 
 	const configuration = $derived(
@@ -63,8 +84,13 @@
 
 <!-- Named for the element, not for the component: a screen reader user hears
      "Iron, symbol Fe" when the panel opens. -->
-<section class="panel" aria-label="{element.name}, symbol {element.symbol}">
-	<header class="head">
+<section
+	class="panel"
+	class:shown
+	data-enter={enter}
+	aria-label="{element.name}, symbol {element.symbol}"
+>
+	<header class="head" bind:this={header}>
 		<div class="ident">
 			<p class="index">{element.number}</p>
 			<p class="symbol">{element.symbol}</p>
@@ -76,8 +102,12 @@
 		<a class="close" href="/">Close</a>
 	</header>
 
-	<div class="body">
-		<section class="group">
+	<div class="body" class:swap={motionOk()}>
+		<!-- Keyed by the symbol, so a change of selection remounts the groups and
+		     the staggered swap replays; the block stays at one indent depth so the
+		     diff of adding it is two lines rather than ninety. -->
+		{#key element.symbol}
+		<section class="group" style:--delay={stagger(0, 'content')}>
 			<h3 class="legend">identity</h3>
 			<dl>
 				<Stat label="atomic number" value={formatPlain(element.number)} />
@@ -89,7 +119,7 @@
 			</dl>
 		</section>
 
-		<section class="group">
+		<section class="group" style:--delay={stagger(1, 'content')}>
 			<h3 class="legend">physical</h3>
 			<dl>
 				<Stat label="atomic mass" value={formatMass(element.mass)} />
@@ -105,7 +135,7 @@
 			</dl>
 		</section>
 
-		<section class="group">
+		<section class="group" style:--delay={stagger(2, 'content')}>
 			<h3 class="legend">atomic</h3>
 			<dl>
 				<Stat
@@ -121,7 +151,7 @@
 			<ShellDiagram shells={element.shells} symbol={element.symbol} name={element.name} />
 		</section>
 
-		<section class="group">
+		<section class="group" style:--delay={stagger(3, 'content')}>
 			<h3 class="legend">history</h3>
 			<dl>
 				<Stat label="discovered by" value={element.discoveredBy} />
@@ -139,7 +169,7 @@
 			</dl>
 		</section>
 
-		<section class="group">
+		<section class="group" style:--delay={stagger(4, 'content')}>
 			{#if element.summary}
 				<p class="summary">{element.summary}</p>
 			{:else}
@@ -148,6 +178,7 @@
 			<!-- The licence lives on /about; repeating it here would be the third copy. -->
 			<p class="attrib"><a href="/about">Attribution</a></p>
 		</section>
+		{/key}
 	</div>
 </section>
 
@@ -171,6 +202,27 @@
 		   keeps the home bar clear and the scroll area ends at the inset. */
 		overflow: hidden;
 		background: var(--surface-raised);
+	}
+
+	/* The panel never animates: it arrives. On a pointer the ghost has just
+	   travelled into this header and the panel is simply there; from a keyboard
+	   there is no rectangle to come from, so the panel is the moving thing and it
+	   fades. Nothing is ever half-readable between the two states. */
+	.panel[data-enter='fade'] {
+		animation: panel-in var(--dur-fast) var(--ease-out) both;
+	}
+
+	.panel[data-enter='ghost']:not(.shown) {
+		visibility: hidden;
+	}
+
+	@keyframes panel-in {
+		from {
+			opacity: 0;
+		}
+		to {
+			opacity: 1;
+		}
 	}
 
 	@media (min-width: 720px) {
@@ -309,6 +361,24 @@
 		margin-block-start: 1rem;
 		padding-block-start: 1rem;
 		border-block-start: 1px solid var(--line);
+	}
+
+	/* A new selection swaps the contents, it never replaces them in one frame:
+	   each group fades up 20 ms after the one above it, capped so a longer panel
+	   does not grow a longer wait. */
+	.swap .group {
+		animation: group-in var(--dur-fast) var(--ease-out) var(--delay) both;
+	}
+
+	@keyframes group-in {
+		from {
+			opacity: 0;
+			transform: translateY(0.5rem);
+		}
+		to {
+			opacity: 1;
+			transform: none;
+		}
 	}
 
 	.legend {

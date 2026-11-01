@@ -1,11 +1,54 @@
 <script lang="ts">
 	import { elements } from '#lib/data/elements.generated.ts';
+	import { markOrigin } from '#lib/motion/flip.ts';
+	import { motionOk } from '#lib/motion/reduced.ts';
 	import Cell from './Cell.svelte';
 	import Legend from './Legend.svelte';
 	import Rail from './Rail.svelte';
 	import { buildModel, move, navKeys, type NavKey } from './model.ts';
 
+	let { intro = false }: { intro?: boolean } = $props();
+
 	const model = buildModel(elements);
+
+	/** The once-per-install flag. `SettingsDialog` clears this same key. */
+	const IGNITED = 'lolia.ignited';
+
+	/**
+	 * The ignition runs only on the table page, only when motion is welcome, and
+	 * only when no earlier load claimed it. Claiming it here, before the first
+	 * paint, is what makes a reload mid-show stay quiet instead of restarting.
+	 */
+	function claimIntro(): boolean {
+		if (!intro || !motionOk()) return false;
+		try {
+			if (localStorage.getItem(IGNITED)) return false;
+			localStorage.setItem(IGNITED, '1');
+			return true;
+		} catch {
+			return false;
+		}
+	}
+
+	// One class on the grid, decided at setup rather than on mount: on mount would
+	// be one painted frame of fully lit cells before the stagger began.
+	let phase = $state<'igniting' | 'fading' | null>(
+		claimIntro() ? 'igniting' : intro && motionOk() ? 'fading' : null,
+	);
+
+	/** A tap during the show says "I know, show me the table". */
+	function skipIntro() {
+		if (phase === 'igniting') phase = null;
+	}
+
+	// The last element to start is the last to finish (its delay is the cap), so
+	// its `animationend` is the end of the whole moment: the class comes off and
+	// the grid holds no finished animations at all.
+	function onCellAnimationEnd(event: AnimationEvent) {
+		if ((event.target as HTMLElement).dataset.symbol === elements.at(-1)?.symbol) {
+			phase = null;
+		}
+	}
 
 	// Roving tabindex: exactly one cell is tabbable, so Tab leaves the grid in one
 	// stop and arrow keys do the walking.
@@ -49,6 +92,17 @@
 		hover = null;
 	}
 
+	// The ghost's origin is measured here, on the press, while the cell is still
+	// exactly where the finger is. Nothing reads layout once it starts moving.
+	function onPointerDown(event: PointerEvent) {
+		const cell = (event.target as HTMLElement).closest<HTMLElement>(
+			"a[data-symbol]",
+		);
+		if (!cell) return;
+		skipIntro();
+		markOrigin(cell);
+	}
+
 	// A pointer click focuses a cell without going through onKeydown, so the tab
 	// stop has to follow the focus or the next Tab re-enters at the old cell.
 	function onFocusIn(event: FocusEvent) {
@@ -83,11 +137,14 @@
 	data-hover-group={hover?.group ?? undefined}
 	data-hover-period={hover?.period ?? undefined}
 	data-hover-row={hover?.row ?? undefined}
+	data-motion={motionOk() ? 'ok' : 'off'}
 >
 	<Rail {model} {hover} />
 
 	<div
 		class="cells"
+		class:igniting={phase === 'igniting'}
+		class:fading={phase === 'fading'}
 		role="grid"
 		tabindex="-1"
 		aria-label="Periodic table of the elements, {elements.length} elements"
@@ -96,7 +153,9 @@
 		onkeydown={onKeydown}
 		onpointerover={onPointerOver}
 		onpointerleave={onPointerLeave}
+		onpointerdown={onPointerDown}
 		onfocusin={onFocusIn}
+		onanimationend={onCellAnimationEnd}
 	>
 		{#each model.rows as y, i (y)}
 			<!-- `aria-rowindex` is the data's y, not the DOM row number: row 8 is absent
@@ -167,5 +226,92 @@
 	   link and a grid item, and the row gains the only child type it may own. */
 	.gridcell {
 		display: contents;
+	}
+
+	/* ── ignition ──────────────────────────────────────────────────────────────
+	   One class on the grid, one custom property per cell. The delay is the
+	   capped stagger, formatted in `#lib/motion/stagger.ts` so no component has
+	   to write a duration. `both` fill is what makes the grid arrive dark: every
+	   cell sits at the from-frame until its turn comes.
+	   No `will-change` here: 118 elements would blow the eight-element budget the
+	   rules set, and a one-off animation does not need the hint. */
+	.igniting :global(a[data-symbol]) {
+		animation: ignite var(--dur-story) var(--ease-out) both;
+		animation-delay: var(--delay);
+	}
+
+	@keyframes ignite {
+		from {
+			opacity: 0;
+			transform: scale(0.96);
+			/* The documented exception: a white-hot arrival, once per install, on a
+			   grid nobody is interacting with. */
+			filter: brightness(2.2) saturate(0.2);
+		}
+		to {
+			opacity: 1;
+			transform: scale(1);
+			filter: brightness(1) saturate(1);
+		}
+	}
+
+	/* Every later load: the table is already there, it is only arriving. */
+	.fading :global(a[data-symbol]) {
+		animation: settle var(--dur-fast) var(--ease-out) both;
+	}
+
+	@keyframes settle {
+		from {
+			opacity: 0;
+		}
+		to {
+			opacity: 1;
+		}
+	}
+
+	/* ── rail dim ──────────────────────────────────────────────────────────────
+	   Everything in the group recedes, then the hovered row and the hovered group
+	   come back. Row membership is a sibling fact the DOM already states, and the
+	   group is the hover value this grid already publishes: both are read from
+	   CSS, so nothing here runs per cell. Pointer only — a stale hover after a tap
+	   should not drain the table. */
+	@media (hover: hover) {
+		.cells:hover :global(a[data-symbol]) {
+			opacity: 0.4;
+		}
+
+		/* The table's own eighteen groups, laid out in the order the data uses.
+		   A member keeps its full strength; a series cell dims with its row, which
+		   is the only axis it has. */
+		.table[data-hover-group='1'] :global(a[data-group='1']),
+		.table[data-hover-group='2'] :global(a[data-group='2']),
+		.table[data-hover-group='3'] :global(a[data-group='3']),
+		.table[data-hover-group='4'] :global(a[data-group='4']),
+		.table[data-hover-group='5'] :global(a[data-group='5']),
+		.table[data-hover-group='6'] :global(a[data-group='6']),
+		.table[data-hover-group='7'] :global(a[data-group='7']),
+		.table[data-hover-group='8'] :global(a[data-group='8']),
+		.table[data-hover-group='9'] :global(a[data-group='9']),
+		.table[data-hover-group='10'] :global(a[data-group='10']),
+		.table[data-hover-group='11'] :global(a[data-group='11']),
+		.table[data-hover-group='12'] :global(a[data-group='12']),
+		.table[data-hover-group='13'] :global(a[data-group='13']),
+		.table[data-hover-group='14'] :global(a[data-group='14']),
+		.table[data-hover-group='15'] :global(a[data-group='15']),
+		.table[data-hover-group='16'] :global(a[data-group='16']),
+		.table[data-hover-group='17'] :global(a[data-group='17']),
+		.table[data-hover-group='18'] :global(a[data-group='18']) {
+			opacity: 1;
+		}
+
+		.cells:has(:global(a:hover)) .row:has(:global(a:hover)) :global(a[data-symbol]) {
+			opacity: 1;
+		}
+	}
+
+	/* One gate, asked once by `motionOk()`. Under reduced motion the cell states
+	   still change — they just change instantly instead of easing. */
+	.table[data-motion='off'] :global(a[data-symbol]) {
+		transition: none;
 	}
 </style>
