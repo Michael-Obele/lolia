@@ -1,12 +1,15 @@
 name: Check
 
-# One gate, two checkers. `bun run check` is the only command CI runs, so a
+# One gate, three checkers. `bun run check` is the only command CI runs, so a
 # green local run means a green CI run and there is nothing to keep in sync.
 #
 #   check:app      svelte-kit sync + svelte-check over tsconfig.json
 #                  (`src/**` and vite.config.ts — .svelte files and TS alike)
 #   check:scripts  tsc --noEmit over scripts/tsconfig.json
 #                  (the Bun build scripts, which the app project must not see)
+#   check:tests    tsc --noEmit over tests/tsconfig.json
+#                  (`tests/**`, which read Bun globals the app project is
+#                  deliberately kept clear of)
 on:
   push:
     branches: [main]

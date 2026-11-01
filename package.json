@@ -15,7 +15,7 @@
 		"check:scripts": "tsc --noEmit -p scripts/tsconfig.json",
 		"check:tests": "tsc --noEmit -p tests/tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
-		"test": "bun test tests",
+		"test": "bun test",
 		"version:sync": "bun scripts/sync-version.ts"
 	},
 	"devDependencies": {

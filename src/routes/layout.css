@@ -61,8 +61,17 @@
 /*
  * Everything Tailwind has to turn into a utility is declared in a @theme block,
  * because v4 discovers a namespace (`--color-*`, `--font-*`, `--text-*`,
- * `--ease-*`, `--radius-*`) from @theme alone. A token left in :root above emits
- * no utility at all, which is how `font-display` silently compiled to nothing.
+ * `--ease-*`, `--radius-*`) from @theme alone. That makes this block
+ * load-bearing for the names Tailwind does not ship — `--font-display`,
+ * `--font-prose`, `--font-data`, `--text-display` — which emit nothing at all
+ * when left in `:root` above.
+ *
+ * The standard steps (`--text-2xl`, `--ease-in-out`, …) are here for a narrower
+ * reason and not because a `:root` declaration would be ignored: `:root` is
+ * unlayered, and unlayered declarations beat `@layer theme`, so `text-2xl`
+ * already computed to this design's 2rem before this block existed. Registering
+ * them in @theme replaces Tailwind's own declaration instead of shipping two
+ * declarations of one name.
  */
 @theme {
 	--color-bg: var(--bg);

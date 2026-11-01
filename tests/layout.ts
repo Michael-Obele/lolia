@@ -7,25 +7,41 @@ import { readFileSync } from 'node:fs';
 
 export type Block = { selector: string; values: Map<string, string> };
 
-const source = readFileSync(new URL('../src/routes/layout.css', import.meta.url), 'utf8').replace(
+/** layout.css with its comments stripped — the text every assertion below reads. */
+export const css = readFileSync(new URL('../src/routes/layout.css', import.meta.url), 'utf8').replace(
 	/\/\*[\s\S]*?\*\//g,
 	''
 );
 
-export const blocks: Block[] = [...source.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map(([, prelude, body]) => ({
-	// The chunk before `{` still carries whatever statement came before it
-	// (`@import 'tailwindcss';`), so the selector is the last `;`-free segment.
-	selector: (prelude.split(';').pop() ?? '').trim(),
-	values: new Map(
-		[...body.matchAll(/--([a-z0-9-]+):\s*([^;]+);/g)].map(([, name, value]) => [name, value.trim()] as [string, string])
-	)
-}));
+/** Split CSS text into declaration blocks, so a duplicate block can be proved fatal. */
+export function parse(text: string): Block[] {
+	return [...text.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map(([, prelude, body]) => ({
+		// The chunk before `{` still carries whatever statement came before it
+		// (`@import 'tailwindcss';`), so the selector is the last `;`-free segment.
+		selector: (prelude.split(';').pop() ?? '').trim(),
+		values: new Map(
+			[...body.matchAll(/--([a-z0-9-]+):\s*([^;]+);/g)].map(
+				([, name, value]) => [name, value.trim()] as [string, string]
+			)
+		)
+	}));
+}
 
-/** The block with exactly this selector, e.g. `:root`, `.dark`, `@theme inline`. */
-export function block(selector: string): Block {
-	const found = blocks.find((candidate) => candidate.selector === selector);
-	if (!found) throw new Error(`layout.css has no \`${selector}\` block`);
-	return found;
+export const blocks: Block[] = parse(css);
+
+/**
+ * The one block with exactly this selector, e.g. `:root`, `.dark`, `@theme inline`.
+ *
+ * A duplicate is fatal, not "first one wins": the browser resolves a repeated
+ * `:root` by cascade order, so the *last* block is the one that actually applies.
+ * Reading the first would let a trailing `:root { --cat-nonmetal: #ff0000; }`
+ * redefine a token while every value pin still passed.
+ */
+export function block(selector: string, list: Block[] = blocks): Block {
+	const found = list.filter((candidate) => candidate.selector === selector);
+	if (found.length > 1) throw new Error(`layout.css declares \`${selector}\` ${found.length} times`);
+	if (!found.length) throw new Error(`layout.css has no \`${selector}\` block`);
+	return found[0];
 }
 
 /** Every selector that declares this token (names carry no leading dashes). */

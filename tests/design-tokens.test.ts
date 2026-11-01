@@ -72,6 +72,36 @@ const chartAliases = {
 	'chart-5': 'var(--cat-alkali)'
 };
 
+// shadcn-svelte's fixed variable set. Each entry is an alias and nothing more —
+// no colour originates in the @theme inline block, so an alias that stops
+// pointing at its raw token is a silent repaint of every installed component.
+const shadcnAliases = {
+	'color-background': 'var(--bg)',
+	'color-foreground': 'var(--ink)',
+	'color-card': 'var(--surface)',
+	'color-card-foreground': 'var(--ink)',
+	'color-popover': 'var(--surface-raised)',
+	'color-popover-foreground': 'var(--ink)',
+	'color-primary': 'var(--ink)',
+	'color-primary-foreground': 'var(--bg)',
+	'color-secondary': 'var(--surface-raised)',
+	'color-secondary-foreground': 'var(--ink)',
+	'color-muted': 'var(--surface)',
+	'color-muted-foreground': 'var(--ink-dim)',
+	'color-accent': 'var(--surface-raised)',
+	'color-accent-foreground': 'var(--ink)',
+	'color-destructive': 'var(--cat-actinide)',
+	'color-destructive-foreground': 'var(--bg)',
+	'color-border': 'var(--line)',
+	'color-input': 'var(--line)',
+	'color-ring': 'var(--ink)',
+	'color-chart-1': 'var(--cat-transition)',
+	'color-chart-2': 'var(--cat-noble-gas)',
+	'color-chart-3': 'var(--cat-lanthanide)',
+	'color-chart-4': 'var(--cat-actinide)',
+	'color-chart-5': 'var(--cat-alkali)'
+};
+
 /** Quotes and comma spacing differ harmlessly; the stack itself must not. */
 const stack = (fonts: string) => fonts.replace(/["']/g, '').replace(/\s*,\s*/g, ',').trim();
 
@@ -114,9 +144,15 @@ describe('type scale', () => {
 		}
 	});
 
-	test('every step is registered in @theme, so `text-*` emits the design’s size', () => {
-		// Tailwind v4 discovers the `--text-*` namespace from @theme alone. Left in
-		// `:root`, `text-2xl` silently keeps Tailwind’s own 1.5rem instead.
+	test('every step is registered in @theme, so the design value replaces Tailwind’s own', () => {
+		// These names are Tailwind's, and an unlayered `:root` already beat its
+		// `@layer theme` defaults — measured at `20d10cc`, where `text-2xl`
+		// computed to 32px, the design's 2rem. Registering the steps in `@theme`
+		// does not change the rendered size; it replaces Tailwind's own
+		// `--text-2xl: 1.5rem` instead of leaving two declarations of one name.
+		// `@theme` is load-bearing only for the names Tailwind does not ship, which
+		// is `--text-display` here and the three font stacks below: a `:root`-only
+		// declaration of those emitted no utility at all.
 		for (const name of Object.keys(typeScale)) {
 			expect({ name, blocks: declaredIn(name) }).toEqual({ name, blocks: ['@theme'] });
 		}
@@ -165,6 +201,29 @@ describe('chart aliases', () => {
 			expect({ name, value: declared.get(name) }).toEqual({ name, value });
 			expect(declaredIn(name)).toEqual([':root']);
 		}
+	});
+});
+
+describe('shadcn alias layer', () => {
+	test('every alias points at the raw token it claims', () => {
+		const declared = block('@theme inline').values;
+		const known = names();
+
+		for (const [name, value] of Object.entries(shadcnAliases)) {
+			expect({ name, value: declared.get(name) }).toEqual({ name, value });
+
+			// The target has to exist as well, or the alias resolves to nothing.
+			const target = value.replace(/^var\(--/, '').replace(/\)$/, '');
+			expect({ name, target, declared: known.includes(target) }).toEqual({ name, target, declared: true });
+		}
+	});
+
+	test('the alias set is exactly shadcn’s — nothing missing, nothing extra', () => {
+		const colourAliases = [...block('@theme inline').values.keys()]
+			.filter((name) => name.startsWith('color-'))
+			.sort();
+
+		expect(colourAliases).toEqual(Object.keys(shadcnAliases).sort());
 	});
 });
 
