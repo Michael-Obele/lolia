@@ -24,3 +24,14 @@ vite.config.ts.timestamp-*
 
 # Local working copy of the plan (see AI-Plans/plans/lolia). Never published.
 .plan/
+
+# Fallow cache
+.fallow/
+
+# Capacitor generates these from the web build. They are output, not source.
+android/app/src/main/assets/public/
+android/app/src/main/assets/capacitor.config.json
+android/app/src/main/assets/capacitor.plugins.json
+android/app/capacitor.build.gradle
+android/capacitor.settings.gradle
+capacitor-cordova-android-plugins/

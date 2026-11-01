@@ -27,7 +27,7 @@ Requires Bun and Node 22.17 or newer.
 
 ```bash
 bun install
-bun run dev            # web, http://localhost:5173
+bun run dev            # web, http://localhost:5174
 bunx tauri dev         # desktop window
 bunx cap sync          # copy the build into android/
 bunx cap run android   # needs an emulator or a device

@@ -17,5 +17,11 @@ export default defineConfig({
 			// is no server and the fallback page is what every route resolves to.
 			adapter: adapter({ fallback: 'index.html' })
 		})
-	]
+	],
+
+	// Tauri's devUrl is pinned to 5174, so vite must never pick its own port.
+	// Without strictPort, a busy port makes vite move to 5175 while Tauri keeps
+	// waiting on 5174, and the desktop window stays blank with no error worth
+	// reading. 5173 is left alone because other projects on this machine use it.
+	server: { port: 5174, strictPort: true }
 });

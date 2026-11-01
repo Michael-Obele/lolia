@@ -1,0 +1,39 @@
+// The build scripts run on Bun, not in the browser and not through Vite, so they
+// get their own project instead of being folded into the app tsconfig. Two
+// reasons it has to be separate:
+//
+//   1. Bun types (`Bun.file`, `import.meta.dir`, `process`) are globals. Pulling
+//      them into the app project would let `src/` code call `Bun.file` and still
+//      type-check, even though that code is bundled for the web and would crash.
+//   2. `svelte-check` walks `tsconfig.json` and type-checks every file it lists.
+//      A script that imports nothing from `src` only slows that run down.
+//
+// It lives in `scripts/` rather than at the root on purpose: the TypeScript
+// language server resolves the *nearest* tsconfig walking up from a file, so
+// this one is what the editor uses when you open a script. Without it the
+// editor falls back to the root project, which does not include `scripts/`, and
+// every script shows "File is not reachable from any entry point".
+{
+	"compilerOptions": {
+		"target": "ESNext",
+		"lib": ["ESNext"],
+		"module": "Preserve",
+		"moduleResolution": "bundler",
+		"moduleDetection": "force",
+		"allowImportingTsExtensions": true,
+		"resolveJsonModule": true,
+		"verbatimModuleSyntax": true,
+		"isolatedModules": true,
+		"esModuleInterop": true,
+		"forceConsistentCasingInFileNames": true,
+
+		// The Bun global (`Bun`, `import.meta.dir`) and `process` both come from
+		// here. Nothing else is loaded, so a Node-only API still fails to compile.
+		"types": ["bun"],
+
+		"strict": true,
+		"noEmit": true,
+		"skipLibCheck": true
+	},
+	"include": ["**/*.ts"]
+}
