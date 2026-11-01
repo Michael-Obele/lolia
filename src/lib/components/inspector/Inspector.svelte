@@ -15,6 +15,7 @@
 	import { takeOrigin, travel } from '#lib/motion/flip.ts';
 	import { motionOk } from '#lib/motion/reduced.ts';
 	import { stagger } from '#lib/motion/stagger.ts';
+	import ElementImage from './ElementImage.svelte';
 	import ShellDiagram from './ShellDiagram.svelte';
 	import Stat from './Stat.svelte';
 
@@ -108,6 +109,11 @@
 		     diff of adding it is two lines rather than ninety. -->
 		{#key element.symbol}
 		<section class="group" style:--delay={stagger(0, 'content')}>
+			<h3 class="legend">photo</h3>
+			<ElementImage {element} />
+		</section>
+
+		<section class="group" style:--delay={stagger(1, 'content')}>
 			<h3 class="legend">identity</h3>
 			<dl>
 				<Stat label="atomic number" value={formatPlain(element.number)} />
@@ -119,7 +125,7 @@
 			</dl>
 		</section>
 
-		<section class="group" style:--delay={stagger(1, 'content')}>
+		<section class="group" style:--delay={stagger(2, 'content')}>
 			<h3 class="legend">physical</h3>
 			<dl>
 				<Stat label="atomic mass" value={formatMass(element.mass)} />
@@ -135,7 +141,7 @@
 			</dl>
 		</section>
 
-		<section class="group" style:--delay={stagger(2, 'content')}>
+		<section class="group" style:--delay={stagger(3, 'content')}>
 			<h3 class="legend">atomic</h3>
 			<dl>
 				<Stat
@@ -151,7 +157,7 @@
 			<ShellDiagram shells={element.shells} symbol={element.symbol} name={element.name} />
 		</section>
 
-		<section class="group" style:--delay={stagger(3, 'content')}>
+		<section class="group" style:--delay={stagger(4, 'content')}>
 			<h3 class="legend">history</h3>
 			<dl>
 				<Stat label="discovered by" value={element.discoveredBy} />
@@ -169,7 +175,7 @@
 			</dl>
 		</section>
 
-		<section class="group" style:--delay={stagger(4, 'content')}>
+		<section class="group" style:--delay={stagger(5, 'content')}>
 			{#if element.summary}
 				<p class="summary">{element.summary}</p>
 			{:else}

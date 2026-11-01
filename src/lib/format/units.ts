@@ -42,6 +42,22 @@ export function formatPicometres(value: number | null): string | null {
 const SUPERSCRIPTS = ['⁰', '¹', '²', '³', '⁴', '⁵', '⁶', '⁷', '⁸', '⁹'];
 
 /**
+ * Stored bytes: under a thousand it is bytes, above that one decimal and a unit
+ * from the thousand ladder. Nothing rounds a real size up to a unit it lacks.
+ */
+export function formatBytes(bytes: number): string {
+	if (!Number.isFinite(bytes) || bytes <= 0) return '0 B';
+	const units = ['B', 'kB', 'MB', 'GB'];
+	let value = bytes;
+	let unit = 0;
+	while (value >= 1000 && unit < units.length - 1) {
+		value /= 1000;
+		unit += 1;
+	}
+	return unit === 0 ? `${value} B` : `${decimal(value, 1)} ${units[unit]}`;
+}
+
+/**
  * `g/cm3` as `g/cm³`. A null unit stays null: density is the one field where a
  * missing unit must read as missing, not as grams per cubic centimetre.
  */

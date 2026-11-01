@@ -3,6 +3,7 @@ import {
 	NOT_KNOWN,
 	decimal,
 	densityUnit,
+	formatBytes,
 	formatKelvin,
 	formatMass,
 	formatPicometres,
@@ -61,5 +62,19 @@ describe('nulls', () => {
 	test('one dash and one reason', () => {
 		expect(NOT_KNOWN).toBe('—');
 		expect(notKnownTitle('melting point')).toBe('melting point is not known for this element.');
+	});
+});
+
+describe('storage sizes', () => {
+	test('bytes below a thousand, one decimal above it', () => {
+		expect(formatBytes(0)).toBe('0 B');
+		expect(formatBytes(999)).toBe('999 B');
+		expect(formatBytes(24_500_000)).toBe('24.5 MB');
+		expect(formatBytes(2_000_000)).toBe('2 MB');
+	});
+
+	test('a missing or non-finite size is zero, never NaN', () => {
+		expect(formatBytes(-1)).toBe('0 B');
+		expect(formatBytes(Number.NaN)).toBe('0 B');
 	});
 });

@@ -1,5 +1,15 @@
 <script lang="ts">
 	import { Dialog } from 'bits-ui';
+	import { elements } from '#lib/data/elements.generated.ts';
+	import { formatBytes } from '#lib/format/units.ts';
+	import {
+		clear as clearPhotos,
+		downloadAll,
+		stats,
+		type PhotoJob,
+		type PhotoProgress,
+		type PhotoStats
+	} from '#lib/platform/photoCache.ts';
 	import ThemeToggle from './ThemeToggle.svelte';
 
 	let open = $state(false);
@@ -13,6 +23,54 @@
 		} catch {
 			cleared = false;
 		}
+	}
+
+	// Built from the generated array, so the count is the data's and never a literal
+	// that drifts when the upstream table changes.
+	const photos: PhotoJob[] = elements.flatMap((element) =>
+		element.image ? [{ symbol: element.symbol, url: element.image.url }] : []
+	);
+
+	// Declared here rather than inside the dialog body, because bits-ui unmounts
+	// that on close and a download should outlive a closed dialog.
+	let cached = $state<PhotoStats>({ count: 0, bytes: 0 });
+	let progress = $state<PhotoProgress | null>(null);
+	let busy = $state(false);
+	let confirming = $state(false);
+	let controller: AbortController | null = null;
+
+	async function refresh() {
+		cached = await stats();
+	}
+
+	$effect(() => {
+		if (open) void refresh();
+	});
+
+	async function download() {
+		if (busy) return;
+		busy = true;
+		confirming = false;
+		controller = new AbortController();
+		await downloadAll(
+			photos,
+			(next) => (progress = next),
+			controller.signal
+		);
+		controller = null;
+		busy = false;
+		await refresh();
+	}
+
+	function cancel() {
+		controller?.abort();
+	}
+
+	async function forget() {
+		confirming = false;
+		progress = null;
+		await clearPhotos();
+		await refresh();
 	}
 
 	const shortcuts = [
@@ -68,7 +126,54 @@
 
 			<section class="group">
 				<h3 class="legend">element photos</h3>
-				<p class="note">Not available yet.</p>
+				<p class="note">
+					Optional. Every element without a photo shows a drawn plate, so the app works
+					without any of them.
+				</p>
+
+				{#if progress}
+					<p class="note status" role="status">
+						{progress.done} / {progress.total}
+						{#if progress.failed}
+							· {progress.failed} could not be fetched and keep their plate
+						{/if}
+					</p>
+					<progress
+						class="bar"
+						value={progress.done}
+						max={progress.total}
+						aria-label="Photo download progress"
+					></progress>
+				{/if}
+
+				<p class="note">
+					{cached.count} of {photos.length} cached · {formatBytes(cached.bytes)}
+				</p>
+
+				<div class="row">
+					{#if busy}
+						<button type="button" class="action" onclick={cancel}>Cancel</button>
+					{:else}
+						<button type="button" class="action" onclick={download}>
+							Download all element photos
+						</button>
+						{#if cached.count > 0}
+							<button type="button" class="action" onclick={() => (confirming = true)}>
+								Clear
+							</button>
+						{/if}
+					{/if}
+				</div>
+
+				{#if confirming}
+					<div class="row">
+						<p class="note">Delete {cached.count} cached photos?</p>
+						<button type="button" class="action" onclick={forget}>Delete</button>
+						<button type="button" class="action" onclick={() => (confirming = false)}>
+							Keep
+						</button>
+					</div>
+				{/if}
 			</section>
 
 			<section class="group">
@@ -130,6 +235,40 @@
 
 	.status {
 		margin-block-start: 0.5rem;
+	}
+
+	.row {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+		margin-block-start: 0.5rem;
+	}
+
+	/* A native progress element, un-native-looking: `accent-color` is ignored by
+	   some engines and leaves the platform green in a warm palette. */
+	.bar {
+		appearance: none;
+		inline-size: 100%;
+		block-size: 0.375rem;
+		margin-block-start: 0.375rem;
+		border: 0;
+		border-radius: var(--radius);
+		background: var(--line);
+		overflow: hidden;
+	}
+
+	.bar::-webkit-progress-bar {
+		background: var(--line);
+	}
+
+	.bar::-webkit-progress-value {
+		background: var(--ink-dim);
+		border-radius: var(--radius);
+	}
+
+	.bar::-moz-progress-bar {
+		background: var(--ink-dim);
+		border-radius: var(--radius);
 	}
 
 	.keys {
