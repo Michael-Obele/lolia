@@ -35,3 +35,6 @@ android/app/src/main/assets/capacitor.plugins.json
 android/app/capacitor.build.gradle
 android/capacitor.settings.gradle
 capacitor-cordova-android-plugins/
+
+# SDD scratch: briefs, reports, ledger. Never published.
+.superpowers/
