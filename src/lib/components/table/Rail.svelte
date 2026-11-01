@@ -66,13 +66,14 @@
 		display: contents;
 	}
 
+	/* `--ink-dim` at full strength: at 10 px this needs 4.5:1, and the 0.8 opacity
+	   this used to carry blended it toward `--bg` until light mode was 3.66:1. */
 	.group,
 	.period,
 	.series {
 		color: var(--ink-dim);
 		font-family: var(--font-data);
 		font-size: 0.625rem;
-		opacity: 0.8;
 	}
 
 	.group {
@@ -91,7 +92,6 @@
 	.group[data-active],
 	.period[data-active] {
 		color: var(--ink);
-		opacity: 1;
 	}
 
 	.series {

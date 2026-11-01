@@ -1,4 +1,4 @@
-import type { Element } from '#lib/data/types.ts';
+import type { Element, ElementCategory } from '#lib/data/types.ts';
 
 // The table's shape is data, not constants: every number the grid lays itself
 // out with is read from `position` here, so the components never carry a literal
@@ -36,6 +36,10 @@ export type GridModel = {
 	byRow: Element[][];
 	/** Cells of each period, ascending by `x`. Parallel to `periods`. */
 	byPeriod: Element[][];
+	/** Short name per occupied row, parallel to `rows` — `Period 4`, `Lanthanides`. */
+	rowLabels: string[];
+	/** Category slugs in first-appearance order — the legend's order, derived once. */
+	categories: ElementCategory[];
 };
 
 export type NavKey =
@@ -97,11 +101,42 @@ export function buildModel(elements: Element[]): GridModel {
 		(y) => !rows.includes(y)
 	);
 
-	return { columns, rows, periods, rowCount, columnCount, gapRows, series, byRow, byPeriod };
+	// A row's accessible name must not be the concatenation of its cells, which is
+	// what a `row` gets from name-from-content. Each row therefore states its own
+	// short name: the period it belongs to, or the series it holds.
+	const rowLabels = rows.map((_, i) => {
+		if (i < periods.length) return `Period ${periods[i]}`;
+		const { label } = series[i - periods.length];
+		return `${label.charAt(0).toUpperCase()}${label.slice(1)}`;
+	});
+
+	// First appearance in atomic order, not alphabetical: the legend then reads the
+	// way a newcomer meets the categories while scanning the table.
+	const categories = [...new Set(elements.map((e) => e.category))];
+
+	return {
+		columns,
+		rows,
+		periods,
+		rowCount,
+		columnCount,
+		gapRows,
+		series,
+		byRow,
+		byPeriod,
+		rowLabels,
+		categories
+	};
 }
 
 /** The cell closest to `x` — ties keep the leftmost, which reads as "same column". */
 function nearest(cells: Element[], x: number): Element {
+	// Nearest-column navigation is deliberately not involutive, and that is not a
+	// bug to file. Rows are ragged: row 6 has nothing at x3 because the lanthanides
+	// are pulled out below it. So Y (x3, row 5) steps down to Ba (x2, row 6), while
+	// Ba steps back up to Sr (x2, row 5) — a different cell in the same column it
+	// landed on. Anything that round-trips exactly would have to remember the
+	// column you came from, and a plain arrow key has nowhere to store it.
 	return cells.reduce((best, cell) =>
 		Math.abs(cell.position.x - x) < Math.abs(best.position.x - x) ? cell : best
 	);

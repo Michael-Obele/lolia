@@ -188,6 +188,58 @@ describe('keyboard walk', () => {
 	});
 });
 
+describe('row names', () => {
+	test('every occupied row has a short derived name, parallel to rows', () => {
+		expect(model.rowLabels).toEqual([
+			'Period 1',
+			'Period 2',
+			'Period 3',
+			'Period 4',
+			'Period 5',
+			'Period 6',
+			'Period 7',
+			'Lanthanides',
+			'Actinides'
+		]);
+		expect(model.rowLabels).toHaveLength(model.rows.length);
+	});
+
+	test('a row name is never the concatenation of its cells', () => {
+		// Without an explicit name a `row` takes its name from its contents, which
+		// for the full period 6 row is nearly a thousand characters.
+		for (const [i, label] of model.rowLabels.entries()) {
+			const cellsLength = model.byRow[i].reduce(
+				(sum, element) => sum + element.name.length,
+				0
+			);
+			expect(label.length).toBeLessThan(cellsLength);
+			expect(label.length).toBeLessThan(20);
+		}
+	});
+});
+
+describe('legend order', () => {
+	test('categories are derived on the model, in first-appearance order', () => {
+		// The legend used to recompute this from `elements` in the component; the
+		// derived fact now lives on the model with every other derived fact.
+		expect(model.categories).toEqual([...new Set(elements.map((e) => e.category))]);
+		expect(model.categories).toHaveLength(10);
+		expect(new Set(model.categories).size).toBe(model.categories.length);
+	});
+
+	test('the order is atomic, not alphabetical', () => {
+		// Hydrogen reads first, so its category leads; "actinide" would sort first
+		// if the list had been sorted by name.
+		expect(model.categories.slice(0, 2)).toEqual([
+			elements[0].category,
+			elements[1].category
+		]);
+		expect(model.categories[0]).not.toBe(
+			[...model.categories].sort().at(0)
+		);
+	});
+});
+
 describe('accessible name', () => {
 	test('a category slug reads as words', () => {
 		expect(humanCategory('transition-metal')).toBe('transition metal');

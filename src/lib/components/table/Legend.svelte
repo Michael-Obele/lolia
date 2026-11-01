@@ -1,13 +1,11 @@
 <script lang="ts">
-	import type { Element } from '#lib/data/types.ts';
+	import type { ElementCategory } from '#lib/data/types.ts';
 	import { categoryVar } from '#lib/design/category.ts';
 	import { humanCategory } from './model.ts';
 
-	let { elements }: { elements: Element[] } = $props();
-
-	// First appearance in atomic order, not alphabetical: the legend then reads
-	// the way a newcomer meets the categories while scanning the table.
-	const categories = $derived([...new Set(elements.map((e) => e.category))]);
+	// The order is a derived fact, so it lives on the model with every other
+	// derived fact rather than being recomputed here from the element list.
+	let { categories }: { categories: ElementCategory[] } = $props();
 </script>
 
 <ul class="legend">
