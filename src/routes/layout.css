@@ -1,1 +1,114 @@
 @import 'tailwindcss';
+
+/*
+ * Raw tokens. Light is the `:root` default, `.dark` overrides it, and the class
+ * on <html> is the only theme switch — no second attribute, no JS colour values.
+ */
+:root {
+	--bg: #f7f3ed;
+	--surface: #fffcf7;
+	--surface-raised: #ffffff;
+	--line: #e2d8cc;
+	--ink: #191310;
+	--ink-dim: #6b5f55;
+	--ink-faint: #9a8d82;
+	--radius: 0.625rem;
+
+	/* Category hues are data, not chrome, so both themes share them. */
+	--cat-alkali: #f2c14e; /* sodium yellow */
+	--cat-alkaline-earth: #c9d45c; /* barium lime */
+	--cat-transition: #4f7de0; /* cobalt blue */
+	--cat-post-transition: #9c86e0; /* bismuth lilac */
+	--cat-metalloid: #6fa8a0; /* silicon teal */
+	--cat-nonmetal: #5fbf7f; /* chlorine green */
+	--cat-noble-gas: #b77bd6; /* argon violet */
+	--cat-lanthanide: #4fb8c9; /* europium cyan */
+	--cat-actinide: #e08a4f; /* uranium amber */
+	--cat-unknown: #8a8578; /* graphite */
+
+	--text-xs: 0.75rem;
+	--text-sm: 0.875rem;
+	--text-base: 1rem;
+	--text-lg: 1.25rem;
+	--text-xl: 1.5rem;
+	--text-2xl: 2rem;
+	--text-3xl: 3rem;
+	--text-display: 6rem;
+
+	--dur-instant: 90ms;
+	--dur-fast: 140ms;
+	--dur-base: 220ms;
+	--dur-slow: 380ms;
+	--dur-story: 900ms;
+
+	--ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+	--ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+	--ease-linear: linear;
+
+	--font-display: Archivo, ui-sans-serif, system-ui, sans-serif;
+	--font-prose: Newsreader, ui-serif, Georgia, serif;
+	--font-data: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+}
+
+.dark {
+	--bg: #161110;
+	--surface: #211b18;
+	--surface-raised: #2a2220;
+	--line: #3a302b;
+	--ink: #f6ede2;
+	--ink-dim: #a99c90;
+	--ink-faint: #6e635b;
+}
+
+/* Raw palette as utilities: bg-surface, text-ink, border-line, bg-cat-transition. */
+@theme {
+	--color-bg: var(--bg);
+	--color-surface: var(--surface);
+	--color-surface-raised: var(--surface-raised);
+	--color-line: var(--line);
+	--color-ink: var(--ink);
+	--color-ink-dim: var(--ink-dim);
+	--color-ink-faint: var(--ink-faint);
+
+	--color-cat-alkali: var(--cat-alkali);
+	--color-cat-alkaline-earth: var(--cat-alkaline-earth);
+	--color-cat-transition: var(--cat-transition);
+	--color-cat-post-transition: var(--cat-post-transition);
+	--color-cat-metalloid: var(--cat-metalloid);
+	--color-cat-nonmetal: var(--cat-nonmetal);
+	--color-cat-noble-gas: var(--cat-noble-gas);
+	--color-cat-lanthanide: var(--cat-lanthanide);
+	--color-cat-actinide: var(--cat-actinide);
+	--color-cat-unknown: var(--cat-unknown);
+}
+
+/*
+ * shadcn-svelte's fixed variable set, aliased onto the raw layer so installed
+ * components work unmodified. Aliases only — no colour originates here.
+ */
+@theme inline {
+	--color-background: var(--bg);
+	--color-foreground: var(--ink);
+	--color-card: var(--surface);
+	--color-card-foreground: var(--ink);
+	--color-popover: var(--surface-raised);
+	--color-popover-foreground: var(--ink);
+	--color-primary: var(--ink);
+	--color-primary-foreground: var(--bg);
+	--color-secondary: var(--surface-raised);
+	--color-secondary-foreground: var(--ink);
+	--color-muted: var(--surface);
+	--color-muted-foreground: var(--ink-dim);
+	--color-accent: var(--surface-raised);
+	--color-accent-foreground: var(--ink);
+	--color-destructive: var(--cat-actinide);
+	--color-destructive-foreground: var(--bg);
+	--color-border: var(--line);
+	--color-input: var(--line);
+	--color-ring: var(--ink);
+	--color-chart-1: var(--cat-transition);
+	--color-chart-2: var(--cat-noble-gas);
+	--color-chart-3: var(--cat-lanthanide);
+	--color-chart-4: var(--cat-actinide);
+	--color-chart-5: var(--cat-alkali);
+}
