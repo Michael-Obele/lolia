@@ -48,14 +48,23 @@
 	--dur-story: 900ms;
 }
 
-.dark {
-	--bg: #161110;
-	--surface: #211b18;
-	--surface-raised: #2a2220;
-	--line: #3a302b;
-	--ink: #f6ede2;
-	--ink-dim: #a99c90;
-	--ink-faint: #6e635b;
+/*
+ * The dark palette is screen-only, and that is the whole print strategy: paper
+ * is ink, so a print job falls back to the light values `:root` already
+ * declares instead of restating them a second time in a print block. One
+ * declaration per colour, no print-only tokens, and no chance of the two copies
+ * drifting apart.
+ */
+@media screen {
+	.dark {
+		--bg: #161110;
+		--surface: #211b18;
+		--surface-raised: #2a2220;
+		--line: #3a302b;
+		--ink: #f6ede2;
+		--ink-dim: #a99c90;
+		--ink-faint: #6e635b;
+	}
 }
 
 /*
@@ -152,3 +161,79 @@
 	--radius-lg: var(--radius);
 	--radius-xl: calc(var(--radius) + 4px);
 }
+
+/*
+ * Print: one A4 landscape page, light palette, no chrome.
+ *
+ * The light palette is not restated here. The dark block above is scoped to
+ * `@media screen`, so a print job simply never sees it and `:root`'s light
+ * values are what resolves — one declaration per colour, nothing to drift.
+ */
+@page {
+	size: A4 landscape;
+	margin: 12mm;
+}
+
+@media print {
+	/* A printed sheet cannot be pressed. The view switch and the settings trigger
+	   go, and so does the element sheet that floats over the table.
+	   `!important` because `.sheet` is a scoped component style that sets
+	   `display: flex` and out-specifies a global rule. */
+	.app-controls,
+	.sheet,
+	.dim,
+	[role='dialog'] {
+		display: none !important;
+	}
+
+	/* 11pt root scales every rem at once — the 3.25rem cell floor, the 0.25rem
+	   gaps, the 2.75rem rails — and lands the grid inside the 273mm by 186mm the
+	   page leaves after its 12mm margins (measured: 264mm by 143mm). */
+	html {
+		font-size: 11pt;
+		/* Category hues are data, not decoration, so their tints must reach paper. */
+		-webkit-print-color-adjust: exact;
+		print-color-adjust: exact;
+	}
+
+	body {
+		background: none;
+	}
+
+	main {
+		min-block-size: 0;
+		padding: 0;
+	}
+
+	/* On screen the table pans, because its columns have an em floor. Paper has
+	   no gesture to pan with, so it must not be a scroll container here: anything
+	   out of view would print as a clipped edge instead of an obvious overflow. */
+	.table {
+		overflow: visible !important;
+	}
+
+	/* No cell can hold focus in a print job, and a ring on paper reads as a
+	   rendering fault. The selector out-specifies the scoped `:focus-visible`
+	   rule; `!important` covers a change in where Svelte puts its hash. */
+	.cells a[data-symbol]:focus-visible {
+		outline: none !important;
+	}
+
+	.legend {
+		break-inside: avoid;
+	}
+
+	/* A row is a line of data, not a paragraph: half of one at the foot of a page
+	   and half at the top of the next is a reading fault. */
+	.item {
+		break-inside: avoid;
+	}
+
+	/* 2.75rem rows are a touch target, and paper has no finger. Dropping the
+	   floor here takes the printed list from eight pages to seven, and nothing
+	   moves on screen. */
+	.entry {
+		min-block-size: 0 !important;
+	}
+}
+
