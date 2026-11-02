@@ -78,6 +78,23 @@ jobs:
           path: build
           retention-days: 7
 
+      # `pages deploy` never creates the project, and in a non-interactive run
+      # that is a hard "Project not found" (code 8000007) rather than the
+      # prompt a human gets at a terminal. Doing it here keeps the workflow
+      # self-contained: the first run closes the gap instead of failing on it.
+      - name: Ensure the Pages project exists
+        if: steps.cloudflare.outputs.configured == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if bunx wrangler@3.90.0 pages project list | grep -qw lolia; then
+            echo "Pages project 'lolia' already exists."
+          else
+            echo "Creating Pages project 'lolia'."
+            bunx wrangler@3.90.0 pages project create lolia --production-branch=main
+          fi
+
       - name: Deploy to Cloudflare Pages
         if: steps.cloudflare.outputs.configured == 'true'
         uses: cloudflare/wrangler-action@v3
