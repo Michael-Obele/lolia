@@ -132,7 +132,7 @@
 					<p class="note status" role="status">
 						{progress.done} / {progress.total}
 						{#if progress.failed}
-							· {progress.failed} could not be fetched and keep their plate
+							· {progress.failed} could not be downloaded and are not available offline
 						{/if}
 					</p>
 					<progress

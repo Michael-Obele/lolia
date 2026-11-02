@@ -1,12 +1,17 @@
 <script lang="ts">
+	import { page } from '$app/state';
 	import { Spring } from 'svelte/motion';
 	import { elements } from '#lib/data/elements.generated.ts';
 	import { travel } from '#lib/motion/flip.ts';
 	import { motionOk } from '#lib/motion/reduced.ts';
 	import { springs } from '#lib/motion/tokens.ts';
-	import { TRAY_LIMIT, tray } from './tray.svelte.ts';
+	import { tray } from './tray.svelte.ts';
 
 	const names = new Map(elements.map((element) => [element.symbol, element.name]));
+
+	// `/compare` is the tray with room to breathe, and it carries its own remove
+	// controls. Floating a second copy of it there would cover the table it opens.
+	const onCompare = $derived(page.url.pathname === '/compare');
 
 	let dock = $state<HTMLElement>();
 
@@ -36,23 +41,26 @@
 	});
 </script>
 
-{#if tray.symbols.length > 0}
+{#if tray.symbols.length > 0 && !onCompare}
 	<aside class="tray" aria-label="Compare tray" bind:this={dock}>
 		<div class="head">
 			<p class="badge" style:transform={`scale(${pop.current})`} aria-hidden="true">
-				{tray.symbols.length}
+				{tray.visible.length}
 			</p>
 			<!-- The count is the announcement. The chips below are talkative and
 			     would drown it out, so only this changes inside the live region. -->
 			<p class="count" role="status">
-				{tray.symbols.length} of {TRAY_LIMIT} elements compared
+				{tray.visible.length} of {tray.cap} elements compared
 			</p>
 		</div>
 
+		<!-- Every chip is one destination: the compare view. The element pages are
+		     a column header away from there, and a tray of four links to four
+		     different pages would be a menu wearing a tray's clothes. -->
 		<ul class="chips">
-			{#each tray.symbols as symbol (symbol)}
+			{#each tray.visible as symbol (symbol)}
 				<li class="chip">
-					<a class="jump" href="/element/{symbol}">{symbol}</a>
+					<a class="jump" href="/compare">{symbol}</a>
 					<button
 						type="button"
 						class="drop"
@@ -64,6 +72,15 @@
 				</li>
 			{/each}
 		</ul>
+
+		<!-- A tray collected on a wider screen shows what fits here and says what
+		     it is holding back, rather than silently dropping elements. -->
+		{#if tray.hidden > 0}
+			<p class="count" role="status">
+				{tray.hidden} more {tray.hidden === 1 ? 'element is' : 'elements are'} in the tray and not shown
+				at this width.
+			</p>
+		{/if}
 
 		<!-- A refusal is a sentence, not a silence: it appears where the tray is and
 		     is announced when it does. -->
