@@ -2,6 +2,7 @@
 	import { page } from '$app/state';
 	import SettingsDialog from '#lib/components/settings/SettingsDialog.svelte';
 	import { elements } from '#lib/data/elements.generated.ts';
+	import { openPalette } from '#lib/search/palette.svelte.ts';
 
 	// The switch is two links, not a toggle with state: the URL is the view, so
 	// it deep-links, it prints, and it survives the back button. `/list` is a real
@@ -38,6 +39,17 @@
 				>
 			{/each}
 		</nav>
+
+		<!-- The visible half of Cmd+K. The shortcut itself lives with the palette,
+		     because it also has to work on the routes that have no header. -->
+		<button
+			type="button"
+			class="view"
+			aria-keyshortcuts="Meta+K Control+K"
+			onclick={openPalette}
+		>
+			Search
+		</button>
 
 		<SettingsDialog />
 	</div>

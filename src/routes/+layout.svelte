@@ -5,6 +5,8 @@
 	// localStorage in a blocking script before anything renders.
 	import '#lib/theme.svelte.ts';
 	import { initAndroidBack } from '#lib/platform/android.ts';
+	import Tray from '#lib/components/compare/Tray.svelte';
+	import Command from '#lib/components/search/Command.svelte';
 	import favicon from '#lib/assets/favicon.svg';
 	import type { LayoutProps } from './$types';
 
@@ -20,3 +22,8 @@
 </svelte:head>
 
 {@render children()}
+
+<!-- Both are app-wide, not page chrome: Cmd+K has to work on the element route,
+     which has its own header, and the tray outlives the route that opened it. -->
+<Tray />
+<Command />

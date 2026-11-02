@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { tray } from '#lib/components/compare/tray.svelte.ts';
 	import { humanCategory } from '#lib/components/table/model.ts';
 	import type { Element } from '#lib/data/types.ts';
+	import { categoryVar } from '#lib/design/category.ts';
 	import {
 		NOT_KNOWN,
 		decimal,
@@ -81,6 +83,17 @@
 		{ label: 'covalent radius, triple bond', value: element.radii.covalentTriple },
 		{ label: 'metallic radius', value: element.radii.metallic }
 	]);
+
+	// The tray is capped at four, so this is a toggle rather than an add that can
+	// only refuse. The rect is measured on press, never during the flight.
+	let compareButton: HTMLButtonElement | undefined = $state();
+	const inTray = $derived(tray.has(element.symbol));
+
+	function compare() {
+		const rect = compareButton?.getBoundingClientRect();
+		const colour = categoryVar(element.category);
+		tray.toggle(element.symbol, rect ? { rect, colour } : undefined);
+	}
 </script>
 
 <!-- Named for the element, not for the component: a screen reader user hears
@@ -102,6 +115,19 @@
 		</div>
 		<a class="close" href="/">Close</a>
 	</header>
+
+	<!-- One control, and it says which side of the toggle it is on with a glyph as
+	     well as a fill, so the state is not colour alone. -->
+	<button
+		type="button"
+		class="compare"
+		bind:this={compareButton}
+		aria-pressed={inTray}
+		onclick={compare}
+	>
+		<span aria-hidden="true">{inTray ? '✓' : '+'}</span>
+		Compare
+	</button>
 
 	<div class="body" class:swap={motionOk()}>
 		<!-- Keyed by the symbol, so a change of selection remounts the groups and
@@ -322,6 +348,31 @@
 	}
 
 	.close:focus-visible {
+		outline: 2px solid var(--ink);
+		outline-offset: 2px;
+	}
+
+	.compare {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.375rem;
+		min-block-size: 2.75rem;
+		margin: 0.5rem 1rem;
+		border: 1px solid var(--line);
+		border-radius: var(--radius);
+		background: none;
+		color: var(--ink);
+		font-size: var(--text-sm);
+	}
+
+	.compare[aria-pressed='true'] {
+		border-color: var(--ink);
+		background: var(--surface);
+		font-weight: 600;
+	}
+
+	.compare:focus-visible {
 		outline: 2px solid var(--ink);
 		outline-offset: 2px;
 	}
