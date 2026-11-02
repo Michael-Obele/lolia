@@ -2,51 +2,121 @@
 
 > The periodic table, made to be looked at.
 
-Lolia is a periodic table of the elements for phones and desktops. The table fills the screen, and touching a cell opens everything known about that element: mass, melting point, electron shells, who found it, and a short description.
+Lolia is a periodic table of the elements. The table fills the screen, and touching a
+cell opens everything known about that element: mass, melting point, electron shells,
+who found it, and a short description. There is a table, a list for reading straight
+through, a search palette, a two-to-four element comparison tray, and a trends view.
 
-One SvelteKit app, built once as static files, shipped twice. Capacitor for Android, Tauri for Windows, Linux and macOS.
+One SvelteKit app, built once as static files and shipped three ways: an Android app, a
+desktop app for Windows, macOS and Linux, and the web.
 
-## Status
+## What ships
 
-Scaffold only, 2026-10-31. The two shells boot the same build. No table, no data, no design yet.
+| Output | Shell | Artifact |
+| --- | --- | --- |
+| Android | Capacitor | `.aab` for Play, `.apk` for a device |
+| Windows | Tauri | `.msi` and `.exe` (NSIS) |
+| macOS | Tauri | `.dmg` |
+| Linux | Tauri | `.AppImage` and `.deb` |
+| Web | none — the same `build/` directory | static site on Cloudflare Pages |
 
-## What is here
+All five come out of one build. `.github/workflows/release.yml` runs on a `v*` tag:
+three desktop runners build with `tauri-action` and attach their installers to the
+release, and an Android job produces the bundle. `.github/workflows/deploy-web.yml`
+publishes the same `build/` directory to a domain root.
 
-| Path | What it is |
-| --- | --- |
-| `src/` | the SvelteKit app |
-| `android/` | Capacitor Android project |
-| `src-tauri/` | Tauri desktop project |
-| `scripts/sync-version.ts` | copies the version from `package.json` into `tauri.conf.json` so the two cannot drift |
+The version is never written down here or in the code. `package.json` is the only place
+it is typed; `scripts/sync-version.ts` copies it into `tauri.conf.json`, `Cargo.toml` and
+the Android manifest, the build inlines it for the about page, and a release is named
+after the tag. See the [releases page](https://github.com/Michael-Obele/lolia/releases)
+for the current one.
 
-The app runs in SPA mode: `@sveltejs/adapter-static` with `fallback: 'index.html'` and `ssr = false`. Both shells load the app from disk, so nothing may render on a server.
+## Requirements
 
-## Develop
+Bun and Node 22.17 or newer. For the desktop build, the Rust toolchain, plus — on Linux
+— WebKitGTK 4.1 and the usual Tauri packaging libraries. For the Android build, JDK 21
+and the Android SDK.
 
-Requires Bun and Node 22.17 or newer.
+## Run it
 
 ```bash
 bun install
 bun run dev            # web, http://localhost:5174
-bunx tauri dev         # desktop window
-bunx cap sync          # copy the build into android/
-bunx cap run android   # needs an emulator or a device
 ```
 
-Building the web app: `bun run build`. Output goes to `build/`, which is both the Capacitor `webDir` and the Tauri `frontendDist`.
+The port is pinned to 5174 with `strictPort`. 5173 is left to other projects on this
+machine, and Tauri's `devUrl` points at 5174, so a busy port fails loudly instead of
+opening a blank desktop window.
 
-## Desktop builds and warnings
+| Command | What it does |
+| --- | --- |
+| `bun run dev` | the app in a browser |
+| `bun run build` | regenerates the element data, then writes `build/` |
+| `bun run preview` | serves `build/` locally |
+| `bun run check` | type-check the app, the build scripts and the tests |
+| `bun test` | the unit tests |
+| `bun run version:sync` | copies `package.json`'s version into every shell |
+| `bun run data:build` | rebuilds `src/lib/data/*.generated.ts` from the vendored JSON |
 
-`bunx tauri build` produces a binary for the machine you run it on. Linux builds Linux. Windows and macOS builds come from CI, not from a Linux box.
+## Build each shell
 
-The installers are **unsigned for now**. Windows shows a SmartScreen warning and macOS refuses the first launch until you allow it. Signing needs a Windows certificate and a paid Apple developer account. That is a distribution decision, not a code problem.
+**Desktop.** `bunx tauri build` produces the installers for the machine you run it on.
+A Linux box builds Linux; the Windows and macOS installers come from CI.
 
-## Data and licence
+**Android.** `bunx cap sync android`, then
+`bunx cap build android --androidreleasetype AAB`. Capacitor signs only when it is given
+a keystore, so the CI job passes `--keystorepath`, `--keystorepass`, `--keystorealias`
+and `--keystorealiaspass` from repository secrets when they exist. Without them the
+artifact is **unsigned**: it installs on a device, and Play will refuse it.
 
-Element data will come from [Bowserinator/Periodic-Table-JSON](https://github.com/Bowserinator/Periodic-Table-JSON), which is licensed **CC BY-SA 3.0** and derives from Wikipedia. Attribution is required, and share-alike attaches to the data.
+**Web.** `bun run build`, then serve `build/` from a domain root. The asset URLs are
+absolute (`/_app/...`), which is what the two native shells need; a subpath deploy would
+require a `base` path and break both of them.
 
-That is why the app will ship an about page naming the source and the pinned commit, and why the data will live in its own files, separate from the app code. Not added yet.
+## Unsigned installers
 
-## Plan
+**The Windows and macOS installers are unsigned.** There is no Windows code-signing
+certificate and no paid Apple developer account behind this project, so:
 
-The full plan lives in a local working copy at `.plan/`, which is gitignored and never published. It covers the design system, the motion specification, the architecture, the milestones, and the decisions behind them.
+- **Windows** shows a SmartScreen warning. *More info* → *Run anyway*.
+- **macOS** refuses the first launch. Allow it in *System Settings → Privacy & Security*,
+  or clear the quarantine flag:
+  `xattr -d com.apple.quarantine /Applications/Lolia.app`.
+
+Signing is a distribution decision, not a code problem, and it is not planned for this
+release.
+
+## iOS is not in this version
+
+iOS needs a Mac, Xcode and a developer account, and there is no Mac here. Android and the
+three desktops are the v0.1 product. `@capacitor/ios` is not installed. When a Mac
+appears, the app code does not change — only the shell, the icons and a build runner.
+
+## Element data and licence
+
+Every number, name and description comes from
+[Bowserinator/Periodic-Table-JSON](https://github.com/Bowserinator/Periodic-Table-JSON),
+which is licensed [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/) and
+draws on Wikipedia. Lolia reads one pinned commit, recorded in `vendor/PINNED.md` and
+repeated on the app's about page, so a release always shows the data it was built with.
+
+The licence is share-alike: the element data stays under CC BY-SA 3.0, and anything
+built from it has to carry the same licence and the same attribution. The application
+code around the data is not affected by it. A copy of the notice is on `/about` inside
+the app, which is also where the version and the keyboard shortcuts live.
+
+## Repository layout
+
+| Path | What it is |
+| --- | --- |
+| `src/` | the SvelteKit app |
+| `src/lib/data/` | the generated element data and the attribution it must carry |
+| `scripts/` | the data build and the version sync |
+| `android/` | the Capacitor Android project |
+| `src-tauri/` | the Tauri desktop project |
+| `tests/` | the unit tests: the ranker, the formatters, the tokens, the motion core |
+| `.github/workflows/` | `ci`, `release`, `deploy-web` |
+
+The app runs as a single-page app: `@sveltejs/adapter-static` with
+`fallback: 'index.html'` and `ssr = false`. Both native shells load it from disk, so
+nothing renders on a server.

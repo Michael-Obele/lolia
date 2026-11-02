@@ -1,9 +1,20 @@
 import tailwindcss from '@tailwindcss/vite';
 import adapter from '@sveltejs/adapter-static';
 import { sveltekit } from '@sveltejs/kit/vite';
+import { readFileSync } from 'node:fs';
 import { defineConfig } from 'vite';
 
+// The version is read, never written down: `package.json` is the only place it is
+// typed, and every surface that shows it (the about page, the shells) gets this
+// same string from the build.
+const { version } = JSON.parse(
+	readFileSync(new URL('./package.json', import.meta.url), 'utf8'),
+);
+
 export default defineConfig({
+	// Inlined at build time, so the client never fetches `package.json` and no
+	// release can ship a version from a different file than the installer's.
+	define: { __APP_VERSION__: JSON.stringify(version) },
 	plugins: [
 		tailwindcss(),
 		sveltekit({
