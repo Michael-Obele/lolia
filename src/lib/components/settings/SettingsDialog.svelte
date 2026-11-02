@@ -4,12 +4,11 @@
 	import { shortcuts } from '#lib/data/shortcuts.ts';
 	import { formatBytes } from '#lib/format/units.ts';
 	import {
+		cachedStats,
 		clear as clearPhotos,
 		downloadAll,
-		stats,
 		type PhotoJob,
-		type PhotoProgress,
-		type PhotoStats
+		type PhotoProgress
 	} from '#lib/platform/photoCache.ts';
 	import ThemeToggle from './ThemeToggle.svelte';
 
@@ -44,19 +43,14 @@
 
 	// Declared here rather than inside the dialog body, because bits-ui unmounts
 	// that on close and a download should outlive a closed dialog.
-	let cached = $state<PhotoStats>({ count: 0, bytes: 0 });
 	let progress = $state<PhotoProgress | null>(null);
 	let busy = $state(false);
 	let confirming = $state(false);
 	let controller: AbortController | null = null;
 
-	async function refresh() {
-		cached = await stats();
-	}
-
-	$effect(() => {
-		if (open) void refresh();
-	});
+	// Read from the store's own change events, so a download or a clear updates
+	// these two numbers with no refresh call anywhere.
+	const cached = $derived(cachedStats());
 
 	async function download() {
 		if (busy) return;
@@ -70,7 +64,6 @@
 		);
 		controller = null;
 		busy = false;
-		await refresh();
 	}
 
 	function cancel() {
@@ -81,7 +74,6 @@
 		confirming = false;
 		progress = null;
 		await clearPhotos();
-		await refresh();
 	}
 </script>
 

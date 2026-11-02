@@ -9,6 +9,7 @@
 
 import { afterEach, describe, expect, test } from 'bun:test';
 import {
+	cachedStats,
 	clear,
 	downloadAll,
 	get,
@@ -89,6 +90,13 @@ describe('cache failure tolerance', () => {
 		expect(await put('Fe', bytes)).toBe(false);
 		expect(await clear()).toBe(false);
 		expect(await stats()).toEqual({ count: 0, bytes: 0 });
+	});
+
+	// The live query is built from runes the browser bundle compiles, so asking
+	// for it outside a browser has to answer zero rather than throw at a caller
+	// that only wanted a number to render.
+	test('the reactive count answers zero without a browser', () => {
+		expect(cachedStats()).toEqual({ count: 0, bytes: 0 });
 	});
 });
 

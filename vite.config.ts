@@ -34,5 +34,12 @@ export default defineConfig({
 	// Without strictPort, a busy port makes vite move to 5175 while Tauri keeps
 	// waiting on 5174, and the desktop window stays blank with no error worth
 	// reading. 5173 is left alone because other projects on this machine use it.
-	server: { port: 5174, strictPort: true }
+	server: { port: 5174, strictPort: true },
+
+	// `svelte-idb/svelte` ships runes in `.svelte.js`, so the svelte plugin has to
+	// compile them against this app's runtime. Pre-bundled, the optimizer gives
+	// them its own copy of `svelte/internal/client` — and a `$state` from that copy
+	// invalidates nothing a component derived from it, which is how the settings
+	// dialog's cached count sat at zero through a full download.
+	optimizeDeps: { exclude: ['svelte-idb'] }
 });

@@ -4,11 +4,19 @@
 // cache exists at all — the app never depends on a hit, and only the settings
 // dialog fills it.
 
+import { isBrowser, type ILiveQuery } from 'svelte-idb';
+import { createReactiveDB } from 'svelte-idb/svelte';
 import type { ElementImage } from '#lib/data/types.ts';
 
 const DB = 'lolia.photos';
 const STORE = 'photos';
-const VERSION = 1;
+/** 2, not 1: the hand-rolled wrapper keyed bare blobs out-of-line at version 1. */
+const VERSION = 2;
+/** How long a read waits before a blocked upgrade counts as no cache at all. */
+const OPEN_BUDGET = 4000;
+
+/** One cached photo. `put` takes the whole record, so the store's keyPath is the key. */
+type PhotoRecord = { symbol: string; blob: Blob; bytes: number };
 
 /** One element to fetch. Built from the generated data, so the list cannot go stale. */
 export type PhotoJob = { symbol: string; url: string };
@@ -26,87 +34,108 @@ export type PhotoResolution =
 	| { source: 'network'; url: string }
 	| { source: 'placeholder' };
 
-let opening: Promise<IDBDatabase | null> | null = null;
+const EMPTY: PhotoStats = { count: 0, bytes: 0 };
 
-/** The store, opened once. `null` means there is no usable IndexedDB, ever. */
-function open(): Promise<IDBDatabase | null> {
-	opening ??= new Promise((resolve) => {
-		try {
-			const request = indexedDB.open(DB, VERSION);
-			request.onupgradeneeded = () => request.result.createObjectStore(STORE);
-			request.onsuccess = () => resolve(request.result);
-			request.onerror = () => resolve(null);
-			request.onblocked = () => resolve(null);
-		} catch {
-			// No IndexedDB at all: a private window, or a shell that blocks it.
-			resolve(null);
+/**
+ * Version 1 held bare blobs under out-of-line keys, so the store has to be
+ * rebuilt around `symbol` — carrying the bytes over rather than asking the user
+ * to download 118 photos a second time.
+ */
+function upgrade(db: IDBDatabase, oldVersion: number, _next: number, transaction: IDBTransaction) {
+	if (oldVersion === 0 || !db.objectStoreNames.contains(STORE)) return;
+	const carried: { symbol: string; blob: Blob }[] = [];
+	const cursor = transaction.objectStore(STORE).openCursor();
+	cursor.onsuccess = () => {
+		const row = cursor.result;
+		if (row) {
+			if (typeof row.key === 'string' && row.value instanceof Blob) {
+				carried.push({ symbol: row.key, blob: row.value });
+			}
+			row.continue();
+			return;
 		}
+		db.deleteObjectStore(STORE);
+		db.createObjectStore(STORE, { keyPath: 'symbol' });
+		const next = transaction.objectStore(STORE);
+		for (const { symbol, blob } of carried) {
+			next.put({ symbol, blob, bytes: blob.size } satisfies PhotoRecord);
+		}
+	};
+}
+
+// One instance for reads, writes and the live query: svelte-idb notifies per
+// database, so a second `createDB` would never hear about these writes.
+const db = createReactiveDB({
+	name: DB,
+	version: VERSION,
+	stores: { photos: { keyPath: 'symbol' } },
+	onUpgrade: upgrade
+});
+
+let opening: Promise<boolean> | null = null;
+
+/** The library's open promise never settles while another tab blocks the upgrade. */
+function ready(): Promise<boolean> {
+	if (!isBrowser()) return Promise.resolve(false);
+	opening ??= new Promise((resolve) => {
+		const stop = setTimeout(() => resolve(false), OPEN_BUDGET);
+		const settle = (ok: boolean) => {
+			clearTimeout(stop);
+			resolve(ok);
+		};
+		db.getRawDB().then(
+			() => settle(true),
+			() => settle(false)
+		);
 	});
 	return opening;
 }
 
-async function store(mode: IDBTransactionMode): Promise<IDBObjectStore | null> {
-	const db = await open();
-	if (!db) return null;
+/** Every record, or `null` when the store cannot be read at all. Never rejects. */
+async function read(): Promise<PhotoRecord[] | null> {
 	try {
-		return db.transaction(STORE, mode).objectStore(STORE);
+		return (await db.photos.getAll()) as PhotoRecord[];
 	} catch {
 		return null;
 	}
 }
 
-/** One request, resolved to its value or `null`. Never rejects. */
-function read<T>(
-	box: IDBObjectStore,
-	run: (box: IDBObjectStore) => IDBRequest<T>
-): Promise<T | null> {
-	return new Promise((resolve) => {
-		try {
-			const request = run(box);
-			request.onsuccess = () => resolve(request.result ?? null);
-			request.onerror = () => resolve(null);
-		} catch {
-			resolve(null);
-		}
-	});
-}
-
-/** One request, resolved to whether it landed. Never rejects. */
-function write<T>(
-	box: IDBObjectStore,
-	run: (box: IDBObjectStore) => IDBRequest<T>
-): Promise<boolean> {
-	return new Promise((resolve) => {
-		try {
-			const request = run(box);
-			request.onsuccess = () => resolve(true);
-			request.onerror = () => resolve(false);
-		} catch {
-			resolve(false);
-		}
-	});
+function summarize(records: PhotoRecord[]): PhotoStats {
+	const blobs = records.map((record) => record.blob).filter((blob) => blob instanceof Blob);
+	return { count: blobs.length, bytes: blobs.reduce((sum, blob) => sum + blob.size, 0) };
 }
 
 /** The cached photo for one symbol, or `null`. Absence and failure look the same. */
 export async function get(symbol: string): Promise<Blob | null> {
-	const box = await store('readonly');
-	if (!box) return null;
-	const value = await read(box, (target) => target.get(symbol));
-	return value instanceof Blob ? value : null;
+	if (!(await ready())) return null;
+	try {
+		const record = (await db.photos.get(symbol)) as PhotoRecord | undefined;
+		return record?.blob instanceof Blob ? record.blob : null;
+	} catch {
+		return null;
+	}
 }
 
 /** Cache one photo. `false` means it did not land, which is not an error anywhere. */
 export async function put(symbol: string, blob: Blob): Promise<boolean> {
-	const box = await store('readwrite');
-	if (!box) return false;
-	return write(box, (target) => target.put(blob, symbol));
+	if (!(await ready())) return false;
+	try {
+		await db.photos.put({ symbol, blob, bytes: blob.size } satisfies PhotoRecord);
+		return true;
+	} catch {
+		return false;
+	}
 }
 
 /** Empty the store. `false` means there was nothing to empty it with. */
 export async function clear(): Promise<boolean> {
-	const box = await store('readwrite');
-	if (!box) return false;
-	return write(box, (target) => target.clear());
+	if (!(await ready())) return false;
+	try {
+		await db.photos.clear();
+		return true;
+	} catch {
+		return false;
+	}
 }
 
 /**
@@ -115,14 +144,28 @@ export async function clear(): Promise<boolean> {
  * own usage estimate is the honest substitute — it is never smaller than the truth.
  */
 export async function stats(): Promise<PhotoStats> {
-	const box = await store('readonly');
-	const values = box ? await read(box, (target) => target.getAll()) : null;
-	if (values) {
-		const blobs = values.filter((value) => value instanceof Blob);
-		return { count: blobs.length, bytes: blobs.reduce((sum, blob) => sum + blob.size, 0) };
+	if (await ready()) {
+		const records = await read();
+		if (records) return summarize(records);
 	}
 	const estimate = await usage();
 	return { count: 0, bytes: estimate ?? 0 };
+}
+
+/**
+ * Built once, at module load, rather than on the first read. A query created
+ * inside a component's `$derived` is created *during* that computation, and the
+ * value the derived then reads is the one the constructor left behind
+ * (`undefined`), so the first result invalidates nothing and the panel keeps a
+ * zero forever. Out here the signal exists before anything derives from it.
+ */
+const liveStats: ILiveQuery<PhotoStats> | null = isBrowser()
+	? db.liveQuery(async () => summarize((await read()) ?? []), [STORE])
+	: null;
+
+/** The live count and size: they update themselves. */
+export function cachedStats(): PhotoStats {
+	return liveStats?.current ?? EMPTY;
 }
 
 async function usage(): Promise<number | null> {
