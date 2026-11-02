@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { Command, Dialog } from 'bits-ui';
-	import { closePalette, palette, restoreFocus, togglePalette } from '#lib/search/palette.svelte.ts';
+	import { closePalette, palette, restoreFocus } from '#lib/search/palette.svelte.ts';
 	import { rank } from '#lib/search/rank.ts';
 	import ResultList from './ResultList.svelte';
 
@@ -26,14 +26,6 @@
 		{ label: 'actinides', query: 'actinide' }
 	];
 
-	// The one shortcut that must work from anywhere — inside the sheet, inside the
-	// settings dialog — so it listens on the window rather than on a control.
-	function onkeydown(event: KeyboardEvent) {
-		if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== 'k') return;
-		event.preventDefault();
-		togglePalette();
-	}
-
 	// Closing forgets the query, so the next open starts from nothing rather than
 	// from a search the user abandoned.
 	$effect(() => {
@@ -53,8 +45,11 @@
 	}
 </script>
 
-<svelte:window onkeydown={onkeydown} />
-
+<!-- The body of the palette, loaded from its own chunk. It is mounted a beat
+     after first paint (the idle prefetch) or, on a cold first Cmd+K, as soon as
+     the chunk lands — never as part of the route graph. The Cmd+K listener that
+     opens it lives with the loader in `palette.svelte.ts`, because this file is
+     not there yet when the first shortcut is pressed. -->
 <Dialog.Root open={palette.open} onOpenChange={(next) => (palette.open = next)}>
 	<Dialog.Portal>
 		<Dialog.Overlay class="search-scrim" />
