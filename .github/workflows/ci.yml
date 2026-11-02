@@ -1,0 +1,62 @@
+name: CI
+
+# One workflow for the gate, on every push and every pull request. The five
+# steps below are the five things a release depends on: the lockfile resolves,
+# the version reaches both shells, the types hold, the tests pass, and the static
+# build a phone or a desktop would load actually builds.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A newer push makes the older run pointless. Cancel it rather than paying twice.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Check, test, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Pinned, because the artifact this pipeline blesses has to be built by the
+      # same Bun a developer's lockfile was written against.
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
+
+      # The download cache, not `node_modules`: a cache of the install directory
+      # goes stale in ways nobody debugs, and Bun's own cache is what makes the
+      # install fast on a cold runner.
+      - uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      - name: Install
+        run: bun install --frozen-lockfile
+
+      # `package.json` is the only place a version is typed. This writes it into
+      # tauri.conf.json, Cargo.toml and the Android manifest, so the artifact a
+      # user downloads cannot report a different number than the app inside it.
+      - name: Sync version into the shells
+        run: bun run version:sync
+
+      - name: Type check
+        run: bun run check
+
+      - name: Test
+        run: bun test
+
+      # `prebuild` also regenerates the element data from the vendored JSON, so a
+      # build that succeeds also proves the committed data module still matches
+      # its source.
+      - name: Build
+        run: bun run build
