@@ -46,6 +46,9 @@
 		padding-inline: 0.5rem;
 		border-radius: var(--radius);
 		cursor: pointer;
+		/* The wash eases in on the row the pointer is over and nowhere else. A
+		   background only: a padding or border here would shift every row below it. */
+		transition: background-color var(--dur-fast) var(--ease-out);
 	}
 
 	/* Selected and merely hovered get the same wash on purpose: the keyboard and

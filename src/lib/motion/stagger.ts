@@ -9,7 +9,11 @@ export const staggers = {
 	// 118 cells at 6 ms apart, capped at 640 ms inside the 900 ms show.
 	ignition: { step: 6, cap: 640 },
 	// The inspector's five field groups: 20 ms apart, 80 ms of spread at most.
-	content: { step: 20, cap: 80 }
+	content: { step: 20, cap: 80 },
+	// The shell diagram's electrons: 30 ms apart, stopping at 420 ms, so the
+	// twenty-sixth of a heavy element lands with the fifteenth instead of a
+	// second after the first.
+	shell: { step: 30, cap: 420 }
 } as const;
 
 export type StaggerName = keyof typeof staggers;

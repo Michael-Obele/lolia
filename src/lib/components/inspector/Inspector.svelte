@@ -67,6 +67,20 @@
 		element.electronConfigurationSemantic ?? element.electronConfiguration
 	);
 
+	// The element whose numbers were on screen a moment ago. The `{#key}` below
+	// remounts the groups on every selection, so a tweened row cannot remember its
+	// own last value; this is where that memory lives. `$effect.pre` because the old
+	// value has to be in place before the new one renders — and the read in the body
+	// is the subscription, so the teardown runs once per selection.
+	let previous = $state<Element | null>(null);
+
+	$effect.pre(() => {
+		const shown = element;
+		return () => {
+			previous = shown;
+		};
+	});
+
 	const ionization = $derived(
 		element.ionizationEnergies.length
 			? element.ionizationEnergies.map((value) => decimal(value, 3)).join(', ')
@@ -149,7 +163,15 @@
 		<section class="group" style:--delay={stagger(1, 'content')}>
 			<h3 class="legend">identity</h3>
 			<dl>
-				<Stat label="atomic number" value={formatPlain(element.number)} />
+				<!-- Rounded before it is printed: a tween carries a fraction, and an atomic
+				     number never shows one. The mass keeps the three decimals its formatter
+				     quotes. -->
+				<Stat
+					label="atomic number"
+					number={element.number}
+					from={previous?.number}
+					format={(value) => formatPlain(Math.round(value))}
+				/>
 				<Stat label="category" value={humanCategory(element.category)} />
 				<Stat label="block" value={element.block} />
 				<Stat label="group" value={formatPlain(element.group)} />
@@ -161,7 +183,13 @@
 		<section class="group" style:--delay={stagger(2, 'content')}>
 			<h3 class="legend">physical</h3>
 			<dl>
-				<Stat label="atomic mass" value={formatMass(element.mass)} />
+				<Stat
+					label="atomic mass"
+					number={element.mass}
+					from={previous?.mass}
+					format={formatMass}
+					unit="u"
+				/>
 				<Stat
 					label="density"
 					value={formatPlain(element.density?.value ?? null)}

@@ -2,12 +2,20 @@
 	import { page } from '$app/state';
 	import { Spring } from 'svelte/motion';
 	import { elements } from '#lib/data/elements.generated.ts';
+	import type { ElementCategory } from '#lib/data/types.ts';
+	import { categoryVar } from '#lib/design/category.ts';
 	import { travel } from '#lib/motion/flip.ts';
 	import { motionOk } from '#lib/motion/reduced.ts';
 	import { springs } from '#lib/motion/tokens.ts';
 	import { tray } from './tray.svelte.ts';
 
 	const names = new Map(elements.map((element) => [element.symbol, element.name]));
+
+	// The chip's own hue, so a hover says which element it is in colour as well as
+	// in letters. The slug, not a colour: the token layer owns the values.
+	const categories = new Map<string, ElementCategory>(
+		elements.map((element) => [element.symbol, element.category])
+	);
 
 	// `/compare` is the tray with room to breathe, and it carries its own remove
 	// controls. Floating a second copy of it there would cover the table it opens.
@@ -42,7 +50,12 @@
 </script>
 
 {#if tray.symbols.length > 0 && !onCompare}
-	<aside class="tray" aria-label="Compare tray" bind:this={dock}>
+	<aside
+		class="tray"
+		aria-label="Compare tray"
+		data-motion={motionOk() ? 'ok' : 'off'}
+		bind:this={dock}
+	>
 		<div class="head">
 			<p class="badge" style:transform={`scale(${pop.current})`} aria-hidden="true">
 				{tray.visible.length}
@@ -59,7 +72,7 @@
 		     different pages would be a menu wearing a tray's clothes. -->
 		<ul class="chips">
 			{#each tray.visible as symbol (symbol)}
-				<li class="chip">
+				<li class="chip" style:--cat={categoryVar(categories.get(symbol) ?? 'unknown')}>
 					<a class="jump" href="/compare">{symbol}</a>
 					<button
 						type="button"
@@ -169,7 +182,36 @@
 		align-items: center;
 		border: 1px solid var(--line);
 		border-radius: var(--radius);
+		/* `overflow: hidden` keeps the two halves inside the rounded corner, and the
+		   chip's own surface is what the tint is mixed into. */
 		overflow: hidden;
+		background: var(--surface-raised);
+		transition:
+			transform var(--dur-fast) var(--ease-out),
+			border-color var(--dur-fast) var(--ease-out),
+			background-color var(--dur-fast) var(--ease-out);
+	}
+
+	/* Pointer only: on touch a lift sticks until the next tap. One chip at a time —
+	   the row itself never moves. */
+	@media (hover: hover) {
+		.chip:hover {
+			transform: translateY(-2px);
+			border-color: color-mix(in oklab, var(--cat) 72%, var(--ink));
+			background-color: color-mix(in oklab, var(--cat) 14%, var(--surface-raised));
+		}
+	}
+
+	/* Moment 2's reduced alternative, applied to the chip: the colour still answers
+	   the pointer, nothing lifts. */
+	.tray[data-motion='off'] .chip {
+		transition: none;
+	}
+
+	@media (hover: hover) {
+		.tray[data-motion='off'] .chip:hover {
+			transform: none;
+		}
 	}
 
 	.jump {
@@ -196,10 +238,8 @@
 		font-size: var(--text-base);
 	}
 
-	.jump:hover {
-		background: var(--surface);
-	}
-
+	/* No background of its own: the chip behind it already carries the hover, and a
+	   second wash would leave the two halves disagreeing mid-lift. */
 	.drop:hover {
 		color: var(--ink);
 	}
