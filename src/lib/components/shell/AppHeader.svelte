@@ -9,7 +9,8 @@
 	// route for exactly that reason.
 	const views = [
 		{ href: '/', label: 'Table' },
-		{ href: '/list', label: 'List' }
+		{ href: '/list', label: 'List' },
+		{ href: '/trends', label: 'Trends' }
 	];
 
 	const here = $derived(page.url.pathname);

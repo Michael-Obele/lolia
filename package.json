@@ -41,6 +41,7 @@
 		"@capacitor/android": "^8.6.0",
 		"@capacitor/core": "^8.6.0",
 		"@capacitor/haptics": "^8.0.2",
-		"bits-ui": "^2.20.3"
+		"bits-ui": "^2.20.3",
+		"layerchart": "^2.9.2"
 	}
 }
