@@ -164,7 +164,7 @@
 		justify-content: center;
 		block-size: 18rem;
 		font-size: var(--text-sm);
-		color: var(--ink-faint);
+		color: var(--ink-dim);
 	}
 
 	@media (min-width: 640px) {
@@ -178,7 +178,7 @@
 		max-inline-size: 68ch;
 		font-size: var(--text-xs);
 		line-height: 1.6;
-		color: var(--ink-faint);
+		color: var(--ink-dim);
 	}
 
 	code {

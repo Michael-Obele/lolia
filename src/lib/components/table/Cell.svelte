@@ -76,6 +76,15 @@
 		}
 	}
 
+	/* A reader who asked for more contrast gets an edge on every cell, not just the
+	   category bar on one side. Inset so the table's tracks do not move. */
+	@media (prefers-contrast: more) {
+		.cell {
+			outline: 2px solid var(--ink-dim);
+			outline-offset: -2px;
+		}
+	}
+
 	/* The ring is never removed, only ever drawn on keyboard focus. */
 	.cell:focus-visible {
 		outline: 2px solid var(--ink);

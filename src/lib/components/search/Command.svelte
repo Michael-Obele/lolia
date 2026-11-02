@@ -188,11 +188,17 @@
 	}
 
 	:global(.search-field::placeholder) {
-		color: var(--ink-faint);
+		color: var(--ink-dim);
 	}
 
 	:global(.search-field:focus) {
 		outline: none;
+	}
+
+	/* The dialog opens with focus already in this field, and its only affordance is
+	   the 1 px underline: while it holds focus that line is ink. */
+	:global(.search-field:focus-visible) {
+		border-block-end-color: var(--ink);
 	}
 
 	.aside {
@@ -211,7 +217,7 @@
 	.hint {
 		margin-block-start: 0.5rem;
 		font-size: var(--text-xs);
-		color: var(--ink-faint);
+		color: var(--ink-dim);
 	}
 
 	.suggest {
@@ -244,7 +250,7 @@
 		gap: 0.75rem;
 		padding-inline: 0.5rem;
 		font-size: var(--text-xs);
-		color: var(--ink-faint);
+		color: var(--ink-dim);
 	}
 
 	kbd {

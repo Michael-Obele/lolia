@@ -294,7 +294,7 @@
 
 	.index {
 		font-size: var(--text-xs);
-		color: var(--ink-faint);
+		color: var(--ink-dim);
 	}
 
 	.symbol {
@@ -442,7 +442,7 @@
 		font-size: var(--text-xs);
 		letter-spacing: 0.08em;
 		text-transform: uppercase;
-		color: var(--ink-faint);
+		color: var(--ink-dim);
 		margin-block-end: 0.375rem;
 	}
 
@@ -458,7 +458,7 @@
 	}
 
 	.empty {
-		color: var(--ink-faint);
+		color: var(--ink-dim);
 	}
 
 	a {

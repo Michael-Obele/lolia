@@ -66,7 +66,7 @@
 	:global(.search-symbol) {
 		font-family: var(--font-data);
 		font-size: var(--text-sm);
-		color: var(--ink-faint);
+		color: var(--ink-dim);
 	}
 
 	:global(.search-name) {

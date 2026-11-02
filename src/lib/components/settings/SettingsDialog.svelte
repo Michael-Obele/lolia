@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Dialog } from 'bits-ui';
 	import { elements } from '#lib/data/elements.generated.ts';
+	import { shortcuts } from '#lib/data/shortcuts.ts';
 	import { formatBytes } from '#lib/format/units.ts';
 	import {
 		clear as clearPhotos,
@@ -14,6 +15,16 @@
 
 	let open = $state(false);
 	let cleared = $state(false);
+	let content: HTMLElement | null = $state(null);
+
+	// Opening has to move focus into the dialog. The trigger stays behind the
+	// overlay, so a modal that leaves focus there reads as a page that did nothing
+	// — measured: the trigger kept focus until this effect existed. The content is
+	// the dialog itself (`tabindex="-1"`), so the title and description are read
+	// before its first control.
+	$effect(() => {
+		if (open) content?.focus();
+	});
 
 	// The motion task reads `lolia.ignited`; this row only owns the storage.
 	function resetIntroduction() {
@@ -72,13 +83,6 @@
 		await clearPhotos();
 		await refresh();
 	}
-
-	const shortcuts = [
-		{ keys: 'Arrow keys', action: 'Move between cells' },
-		{ keys: 'Home, End', action: 'Jump to the ends of a row' },
-		{ keys: 'Page Up, Page Down', action: 'Move by period' },
-		{ keys: 'Escape', action: 'Close the panel' }
-	];
 </script>
 
 <Dialog.Root bind:open>
@@ -92,6 +96,7 @@
 		<Dialog.Overlay class="fixed inset-0 z-40 bg-bg opacity-70" />
 
 		<Dialog.Content
+			bind:ref={content}
 			class="fixed inset-x-3 top-1/2 z-50 flex max-h-[calc(100dvh-3rem)] -translate-y-1/2 flex-col gap-4 overflow-y-auto overscroll-contain rounded-lg border border-line bg-surface-raised p-4 text-ink sm:inset-x-0 sm:mx-auto sm:w-[min(26rem,calc(100vw-2rem))]"
 		>
 			<div class="head">
@@ -209,7 +214,7 @@
 		font-size: var(--text-xs);
 		letter-spacing: 0.08em;
 		text-transform: uppercase;
-		color: var(--ink-faint);
+		color: var(--ink-dim);
 	}
 
 	.action {

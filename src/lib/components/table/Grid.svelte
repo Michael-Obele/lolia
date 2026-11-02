@@ -309,6 +309,14 @@
 		}
 	}
 
+	/* The dim is an affordance, not information: a reader who asked for more
+	   contrast gets the whole table at full strength. */
+	@media (prefers-contrast: more) {
+		.cells :global(a[data-symbol]) {
+			opacity: 1;
+		}
+	}
+
 	/* One gate, asked once by `motionOk()`. Under reduced motion the cell states
 	   still change — they just change instantly instead of easing. */
 	.table[data-motion='off'] :global(a[data-symbol]) {

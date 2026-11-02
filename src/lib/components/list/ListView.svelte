@@ -66,7 +66,9 @@
 		min-inline-size: 2.5ch;
 		font-family: var(--font-data);
 		font-size: var(--text-xs);
-		color: var(--ink-faint);
+		/* --ink-faint measured 2.92:1 here; a number is text, so it takes the dim
+		   tone that passes at 5.6:1. */
+		color: var(--ink-dim);
 		text-align: end;
 	}
 

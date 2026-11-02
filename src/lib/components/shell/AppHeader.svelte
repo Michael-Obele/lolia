@@ -24,7 +24,7 @@
 >
 	<div class="flex flex-wrap items-baseline gap-3">
 		<h1 class="font-display text-2xl font-bold tracking-tight">Lolia</h1>
-		<p class="font-data text-xs text-ink-faint">{elements.length} elements</p>
+		<p class="font-data text-xs text-ink-dim">{elements.length} elements</p>
 	</div>
 
 	<!-- Screen-only: a printed sheet has nothing to press. `layout.css` hides
@@ -59,6 +59,9 @@
 <style>
 	.switch {
 		display: flex;
+		/* At 200 percent text zoom three labels are wider than a phone; wrapping
+		   them keeps the document from scrolling sideways. */
+		flex-wrap: wrap;
 		gap: 0.25rem;
 	}
 

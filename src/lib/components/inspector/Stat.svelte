@@ -56,8 +56,9 @@
 		color: var(--ink-dim);
 	}
 
-	/* The dash is quieter than a value, and its title says why it is there. */
+	/* The dash is quieter than a value, and its title says why it is there. It is
+	   still text, so it holds the same 4.5:1 floor as the value it stands in for. */
 	.empty {
-		color: var(--ink-faint);
+		color: var(--ink-dim);
 	}
 </style>
