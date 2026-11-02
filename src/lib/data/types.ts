@@ -41,7 +41,17 @@ export type ElementImage = {
 	attribution: string;
 };
 
-export type Element = {
+/** Density as upstream recorded it. The unit is data, never assumed. */
+export type ElementDensity = { value: number; unit: string | null };
+
+/**
+ * What the grid, the list and the tray need to draw and name an element.
+ *
+ * This is the half of the payload every route carries. `element-details.generated.ts`
+ * holds the rest and arrives from its own chunk (`#lib/data/details.ts`), so the
+ * table route never pays for a summary it does not print.
+ */
+export type ElementCore = {
 	/** Atomic number. Primary key, and the sort order of the generated array. */
 	number: number;
 	symbol: string;
@@ -55,13 +65,19 @@ export type Element = {
 	period: number | null;
 	/** Grid coordinates straight from upstream `xpos`/`ypos`. The layout truth. */
 	position: { x: number; y: number };
-	mass: number | null;
 	phase: ElementPhase;
+};
+
+/**
+ * What only the inspector, the compare table and the expanded list row print.
+ * Keyed by symbol in `details`, which is why it carries no `symbol` of its own.
+ */
+export type ElementDetail = {
+	mass: number | null;
 	/** Kelvin. Never converted at rest; formatting happens at render. */
 	meltingPoint: number | null;
 	boilingPoint: number | null;
-	/** `unit` is whatever upstream said (`g/cm3`, `g/L`). Never assumed. */
-	density: { value: number; unit: string | null } | null;
+	density: ElementDensity | null;
 	electronegativity: number | null;
 	electronAffinity: number | null;
 	ionizationEnergies: number[];
@@ -78,3 +94,10 @@ export type Element = {
 	source: string | null;
 	spectralImage: string | null;
 };
+
+/**
+ * Both halves. Only for code that genuinely wants a whole element — tests that
+ * read the payload, and anything that joins the two at runtime. A component
+ * should ask for the half it prints.
+ */
+export type Element = ElementCore & ElementDetail;

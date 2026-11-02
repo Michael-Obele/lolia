@@ -8,9 +8,22 @@
 // another metric's unit, and its axis is scaled from its own rows because the
 // chart is handed one metric's rows at a time.
 
+import { details } from '#lib/data/element-details.generated.ts';
 import { elements } from '#lib/data/elements.generated.ts';
 import type { Element, ElementCategory } from '#lib/data/types.ts';
 import { decimal, densityUnit, formatMass } from '#lib/format/units.ts';
+
+/**
+ * The two halves of the payload, joined once.
+ *
+ * `/trends` plots six properties and asks for all of them, so this module is the
+ * one place that may import the detail chunk statically — it is a lazy route of
+ * its own, and nothing the table route loads reaches this file.
+ */
+const full: Element[] = elements.flatMap((core) => {
+	const detail = details[core.symbol];
+	return detail === undefined ? [] : [{ ...core, ...detail }];
+});
 
 export type MetricId =
 	| 'mass'
@@ -156,7 +169,7 @@ function build(spec: Spec): Metric {
 	let omitted = 0;
 	let otherUnit = 0;
 
-	for (const element of elements) {
+	for (const element of full) {
 		const reading = read(spec.id, element);
 		if (reading.kind === 'value') {
 			rows.push({

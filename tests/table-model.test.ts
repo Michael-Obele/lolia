@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { elements } from '../src/lib/data/elements.generated.ts';
-import type { Element } from '../src/lib/data/types.ts';
+import type { ElementCore } from '../src/lib/data/types.ts';
 import { buildModel, humanCategory, move } from '../src/lib/components/table/model.ts';
 
 // The grid's shape and its keyboard walk are both derived from `position`, so
@@ -11,7 +11,7 @@ const model = buildModel(elements);
 const readingOrder = model.rows.flatMap((_, i) => model.byRow[i]);
 
 /** Every cell reached by pressing Home then ArrowRight until it stops moving. */
-function walkRight(entry: Element): Element[] {
+function walkRight(entry: ElementCore): ElementCore[] {
 	const walk = [move(model, entry, 'Home')];
 	for (;;) {
 		const next = move(model, walk[walk.length - 1], 'ArrowRight');
@@ -23,7 +23,7 @@ function walkRight(entry: Element): Element[] {
 }
 
 /** Every cell reached by pressing End then ArrowLeft until it stops moving. */
-function walkLeft(entry: Element): Element[] {
+function walkLeft(entry: ElementCore): ElementCore[] {
 	const walk = [move(model, entry, 'End')];
 	for (;;) {
 		const next = move(model, walk[walk.length - 1], 'ArrowLeft');

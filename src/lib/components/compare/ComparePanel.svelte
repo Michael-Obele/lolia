@@ -1,10 +1,12 @@
 <script lang="ts">
 	// The compare view: rows are properties, columns are elements. The tray decides
 	// which elements, this decides what is worth reading about them side by side.
+	import { onMount } from 'svelte';
 	import ScrollArea from '#lib/components/ui/scroll-area/scroll-area.svelte';
 	import { humanCategory } from '#lib/components/table/model.ts';
+	import { loadDetails } from '#lib/data/details.ts';
 	import { elements } from '#lib/data/elements.generated.ts';
-	import type { Element } from '#lib/data/types.ts';
+	import type { Element, ElementDetail } from '#lib/data/types.ts';
 	import { categoryVar } from '#lib/design/category.ts';
 	import {
 		NOT_KNOWN,
@@ -32,10 +34,52 @@
 
 	const bySymbol = new Map(elements.map((element) => [element.symbol, element]));
 
+	/**
+	 * What a column shows before the detail payload has arrived. Every field is a
+	 * real "no value", so a cell renders the same em dash an absent measurement
+	 * does — the table is readable from the first frame and fills in once.
+	 */
+	const NO_DETAIL: ElementDetail = {
+		mass: null,
+		meltingPoint: null,
+		boilingPoint: null,
+		density: null,
+		electronegativity: null,
+		electronAffinity: null,
+		ionizationEnergies: [],
+		shells: [],
+		electronConfiguration: null,
+		electronConfigurationSemantic: null,
+		radii: {
+			empirical: null,
+			calculated: null,
+			vanDerWaals: null,
+			covalentSingle: null,
+			covalentTriple: null,
+			metallic: null
+		},
+		discoveredBy: null,
+		namedBy: null,
+		summary: null,
+		image: null,
+		source: null,
+		spectralImage: null
+	};
+
+	// `/compare` prints fifteen properties at once, so it takes the whole payload —
+	// and it takes it on mount, once, instead of per column.
+	let details = $state<Record<string, ElementDetail>>({});
+
+	onMount(() => {
+		void loadDetails().then((loaded) => (details = loaded));
+	});
+
 	const columns = $derived(
 		tray.visible.flatMap((symbol) => {
-			const element = bySymbol.get(symbol);
-			return element ? [element] : [];
+			const core = bySymbol.get(symbol);
+			if (!core) return [];
+			const element: Element = { ...core, ...(details[symbol] ?? NO_DETAIL) };
+			return [element];
 		})
 	);
 

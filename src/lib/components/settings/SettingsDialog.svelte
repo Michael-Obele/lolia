@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Dialog } from 'bits-ui';
+	import { loadDetails } from '#lib/data/details.ts';
 	import { elements } from '#lib/data/elements.generated.ts';
 	import { shortcuts } from '#lib/data/shortcuts.ts';
 	import { formatBytes } from '#lib/format/units.ts';
@@ -36,10 +37,26 @@
 	}
 
 	// Built from the generated array, so the count is the data's and never a literal
-	// that drifts when the upstream table changes.
-	const photos: PhotoJob[] = elements.flatMap((element) =>
-		element.image ? [{ symbol: element.symbol, url: element.image.url }] : []
-	);
+	// that drifts when the upstream table changes. The photo URL is a detail field,
+	// which the table route deliberately does not carry: it is fetched when the
+	// dialog opens, and `null` means it has not arrived yet.
+	let photos = $state<PhotoJob[] | null>(null);
+	let asking: Promise<PhotoJob[]> | null = null;
+
+	function photoJobs(): Promise<PhotoJob[]> {
+		asking ??= loadDetails().then((all) =>
+			elements.flatMap((element) => {
+				const image = all[element.symbol]?.image;
+				return image ? [{ symbol: element.symbol, url: image.url }] : [];
+			})
+		);
+		return asking;
+	}
+
+	$effect(() => {
+		if (!open || photos !== null) return;
+		void photoJobs().then((list) => (photos = list));
+	});
 
 	// Declared here rather than inside the dialog body, because bits-ui unmounts
 	// that on close and a download should outlive a closed dialog.
@@ -57,8 +74,11 @@
 		busy = true;
 		confirming = false;
 		controller = new AbortController();
+		// `photos` is normally already here (the dialog loaded it on open); this
+		// only covers a press that lands first, and it never silently does nothing.
+		const list = photos ?? (await photoJobs());
 		await downloadAll(
-			photos,
+			list,
 			(next) => (progress = next),
 			controller.signal
 		);
@@ -144,7 +164,7 @@
 				{/if}
 
 				<p class="note">
-					{cached.count} of {photos.length} cached · {formatBytes(cached.bytes)}
+					{cached.count} of {photos?.length ?? '—'} cached · {formatBytes(cached.bytes)}
 				</p>
 
 				<div class="row">

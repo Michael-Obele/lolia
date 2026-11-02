@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { untrack } from 'svelte';
 	import { Tween } from 'svelte/motion';
+	import { untrack } from 'svelte';
 	import { NOT_KNOWN, notKnownTitle } from '#lib/format/units.ts';
 	import { easing } from '#lib/motion/easing.ts';
 	import { motionOk } from '#lib/motion/reduced.ts';
@@ -29,29 +29,41 @@
 		format?: ((value: number) => string | null) | null;
 	} = $props();
 
-	// Moment 14: the same 380 ms ease-out the rest of the app moves with, or the
-	// value set directly. Read once, at birth — this row is created with its value,
-	// so there is no later frame at which the preference could change under it.
+	// Read once, at birth — this row is created with its value, so there is no
+	// later frame at which the preference could change under it.
 	const birth = untrack(() => ({
-		number,
 		from,
 		hasFormat: format !== null,
 		canAnimate: motionOk()
 	}));
-	const to = birth.number;
-	const prior = birth.from;
 
-	const tween =
-		to === null || !birth.hasFormat
-			? null
-			: new Tween(prior !== null && birth.canAnimate ? prior : to, {
-					duration: durations.slow.ms,
-					easing: easing.out
-				});
+	// `raw`, not a deep proxy: a Tween is a handle with its own reactivity, and
+	// proxying it would wrap `current` in a second layer.
+	let tween = $state.raw<Tween<number> | null>(null);
 
-	// The travel starts here rather than on a later tick: the row is already
-	// showing the old value, and this carries it to the new one.
-	if (tween && to !== null && prior !== null && birth.canAnimate) tween.target = to;
+	// A row can be born before its number. The panel prints the core fields first
+	// and the detail lands a moment later, so the tween is built the frame the
+	// number arrives rather than the frame the row does — and it still travels
+	// from the previous selection's value, which `from` has been carrying. A row
+	// that outlives its number follows it instead of sticking.
+	$effect(() => {
+		const target = number;
+		if (!birth.hasFormat || target === null) return;
+
+		if (tween === null) {
+			const prior = birth.from;
+			const start = prior !== null && birth.canAnimate ? prior : target;
+			const created = new Tween(start, {
+				duration: durations.slow.ms,
+				easing: easing.out
+			});
+			if (start !== target) created.target = target;
+			tween = created;
+			return;
+		}
+
+		tween.target = target;
+	});
 </script>
 
 <!-- One row: the label on the start edge, the value on the end edge. -->
@@ -60,6 +72,9 @@
 	<dd>
 		{#if tween}
 			<span class="value">{format?.(tween.current) ?? NOT_KNOWN}</span>
+			{#if unit}<span class="unit">{unit}</span>{/if}
+		{:else if number !== null}
+			<span class="value">{format?.(number) ?? NOT_KNOWN}</span>
 			{#if unit}<span class="unit">{unit}</span>{/if}
 		{:else if value === null}
 			<span class="empty" title={notKnownTitle(label)}>{NOT_KNOWN}</span>

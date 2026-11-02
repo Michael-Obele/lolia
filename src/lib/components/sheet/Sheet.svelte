@@ -3,7 +3,7 @@
 	import { onMount } from 'svelte';
 	import { Spring } from 'svelte/motion';
 	import Inspector from '#lib/components/inspector/Inspector.svelte';
-	import type { Element } from '#lib/data/types.ts';
+	import type { ElementCore } from '#lib/data/types.ts';
 	import { motionOk } from '#lib/motion/reduced.ts';
 	import { springs } from '#lib/motion/tokens.ts';
 	import {
@@ -12,7 +12,9 @@
 		registerSheetClose
 	} from '#lib/platform/android.ts';
 
-	let { element }: { element: Element } = $props();
+	// Core only: the panel loads the rest itself, so the route that hosts the
+	// sheet never carries it.
+	let { element }: { element: ElementCore } = $props();
 
 	/** 30, 55, 88 percent of the viewport. The sheet opens on the middle one. */
 	const SNAPS = [0.3, 0.55, 0.88];

@@ -1,9 +1,14 @@
 <script lang="ts">
 	import { categoryVar } from '#lib/design/category.ts';
-	import type { Element } from '#lib/data/types.ts';
+	import type { ElementCore, ElementImage as ElementImageSource } from '#lib/data/types.ts';
 	import { resolvePhoto } from '#lib/platform/photoCache.ts';
 
-	let { element }: { element: Element } = $props();
+	// The photo is a detail field, so it arrives through `image` rather than off
+	// `element`: the plate can be drawn before there is a photo to look up.
+	let {
+		element,
+		image = null
+	}: { element: ElementCore; image?: ElementImageSource | null } = $props();
 
 	// Nothing here is fetched until this component exists, and it only exists once
 	// the inspector is open for this element. `null` means "no photo to show":
@@ -24,7 +29,7 @@
 	// waits for this: the plate is already on screen, and the photo is a second
 	// arrival that either replaces it or does not.
 	$effect(() => {
-		const photo = element.image;
+		const photo = image;
 		const symbol = element.symbol;
 		let live = true;
 
@@ -61,10 +66,10 @@
 			decoding="async"
 			onerror={() => (src = null)}
 		/>
-		{#if element.image}
+		{#if image}
 			<figcaption class="credit">
-				<span class="credit-title">{element.image.title}</span>
-				<span class="credit-line">{element.image.attribution}</span>
+				<span class="credit-title">{image.title}</span>
+				<span class="credit-line">{image.attribution}</span>
 			</figcaption>
 		{/if}
 	{:else}

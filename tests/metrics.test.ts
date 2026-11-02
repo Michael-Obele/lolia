@@ -1,6 +1,14 @@
 import { describe, expect, test } from 'bun:test';
 import { elementCount, metrics } from '../src/lib/data/metrics.ts';
+import { details } from '../src/lib/data/element-details.generated.ts';
 import { elements } from '../src/lib/data/elements.generated.ts';
+
+// The two halves of the generated payload, joined the way `metrics.ts` joins them,
+// so a test can read a detail field without pretending the core array has one.
+const full = elements.flatMap((core) => {
+	const detail = details[core.symbol];
+	return detail === undefined ? [] : [{ ...core, ...detail }];
+});
 
 // `/trends` plots whatever these rows say, so the rows are the contract: long
 // format, one row per element per metric, never a value the data does not hold,
@@ -64,8 +72,8 @@ describe('omission', () => {
 
 	test('density plots one unit and reports the rest as other-unit', () => {
 		const density = metric('density');
-		const plottable = elements.filter((element) => element.density?.unit === 'g/cm3').length;
-		const otherUnit = elements.filter(
+		const plottable = full.filter((element) => element.density?.unit === 'g/cm3').length;
+		const otherUnit = full.filter(
 			(element) => element.density !== null && element.density.unit !== 'g/cm3'
 		).length;
 
@@ -101,7 +109,7 @@ describe('units are declared, not borrowed', () => {
 	});
 
 	test('ionization reads the first stored energy, not an average', () => {
-		const iron = elements.find((element) => element.symbol === 'Fe');
+		const iron = full.find((element) => element.symbol === 'Fe');
 		const row = metric('ionization').rows.find((candidate) => candidate.atomicNumber === 26);
 		expect(row?.value).toBe(iron?.ionizationEnergies[0]);
 		expect(metric('ionization').unit).toBe('kJ/mol');

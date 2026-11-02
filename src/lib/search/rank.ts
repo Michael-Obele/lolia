@@ -1,5 +1,5 @@
 import { elements } from '#lib/data/elements.generated.ts';
-import type { Element } from '#lib/data/types.ts';
+import type { ElementCore } from '#lib/data/types.ts';
 
 // D11: 118 rows, five obvious tiers, no dependency. Case and diacritics fold
 // before anything is compared, so `ǐron` and `IRON` are the same query.
@@ -8,7 +8,7 @@ import type { Element } from '#lib/data/types.ts';
 export type Tier = 1 | 2 | 3 | 4 | 5;
 
 export type Match = {
-	element: Element;
+	element: ElementCore;
 	tier: Tier;
 	/** Printed beside the row. Ordering is never a mystery. */
 	reason: string;
@@ -40,7 +40,7 @@ function fold(value: string): string {
 		.trim();
 }
 
-export function rank(query: string, source: readonly Element[] = elements): Match[] {
+export function rank(query: string, source: readonly ElementCore[] = elements): Match[] {
 	const typed = fold(query);
 	if (!typed) return [];
 	const needle = aliases[typed] ?? typed;

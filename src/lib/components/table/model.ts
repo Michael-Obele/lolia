@@ -1,4 +1,6 @@
-import type { Element, ElementCategory } from '#lib/data/types.ts';
+// Only the core half: the grid never prints a melting point, so it never asks
+// for one. `ElementCore` is what `elements.generated.ts` holds.
+import type { ElementCategory, ElementCore } from '#lib/data/types.ts';
 
 // The table's shape is data, not constants: every number the grid lays itself
 // out with is read from `position` here, so the components never carry a literal
@@ -33,9 +35,9 @@ export type GridModel = {
 	gapRows: number[];
 	series: Series[];
 	/** Cells of each row, ascending by `x`. Parallel to `rows`. */
-	byRow: Element[][];
+	byRow: ElementCore[][];
 	/** Cells of each period, ascending by `x`. Parallel to `periods`. */
-	byPeriod: Element[][];
+	byPeriod: ElementCore[][];
 	/** Short name per occupied row, parallel to `rows` — `Period 4`, `Lanthanides`. */
 	rowLabels: string[];
 	/** Category slugs in first-appearance order — the legend's order, derived once. */
@@ -63,11 +65,11 @@ export const navKeys = new Set<string>([
 	'PageDown'
 ]);
 
-const byX = (a: Element, b: Element) => a.position.x - b.position.x;
+const byX = (a: ElementCore, b: ElementCore) => a.position.x - b.position.x;
 
 const uniqueSorted = (values: number[]) => [...new Set(values)].sort((a, b) => a - b);
 
-export function buildModel(elements: Element[]): GridModel {
+export function buildModel(elements: ElementCore[]): GridModel {
 	const rows = uniqueSorted(elements.map((e) => e.position.y));
 	const columns = uniqueSorted(elements.map((e) => e.position.x));
 	const rowCount = Math.max(...rows);
@@ -130,7 +132,7 @@ export function buildModel(elements: Element[]): GridModel {
 }
 
 /** The cell closest to `x` — ties keep the leftmost, which reads as "same column". */
-function nearest(cells: Element[], x: number): Element {
+function nearest(cells: ElementCore[], x: number): ElementCore {
 	// Nearest-column navigation is deliberately not involutive, and that is not a
 	// bug to file. Rows are ragged: row 6 has nothing at x3 because the lanthanides
 	// are pulled out below it. So Y (x3, row 5) steps down to Ba (x2, row 6), while
@@ -142,7 +144,13 @@ function nearest(cells: Element[], x: number): Element {
 	);
 }
 
-function step(keys: number[], current: number, groups: Element[][], from: Element, delta: number) {
+function step(
+	keys: number[],
+	current: number,
+	groups: ElementCore[][],
+	from: ElementCore,
+	delta: number
+) {
 	const i = keys.indexOf(current);
 	const group = i === -1 ? undefined : groups[i + delta];
 	return group ? nearest(group, from.position.x) : from;
@@ -153,7 +161,7 @@ function step(keys: number[], current: number, groups: Element[][], from: Elemen
  * the nearest cell in the next *occupied* row rather than the same column, and
  * `from` comes back unchanged at an edge so callers can detect a dead key.
  */
-export function move(model: GridModel, from: Element, key: NavKey): Element {
+export function move(model: GridModel, from: ElementCore, key: NavKey): ElementCore {
 	const row = model.byRow[model.rows.indexOf(from.position.y)];
 	const at = row.indexOf(from);
 

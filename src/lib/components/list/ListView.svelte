@@ -4,7 +4,9 @@
 	import Stat from '#lib/components/inspector/Stat.svelte';
 	import { humanCategory } from '#lib/components/table/model.ts';
 	import ScrollArea from '#lib/components/ui/scroll-area/scroll-area.svelte';
+	import { getDetail } from '#lib/data/details.ts';
 	import { elements } from '#lib/data/elements.generated.ts';
+	import type { ElementDetail } from '#lib/data/types.ts';
 	import { categoryVar } from '#lib/design/category.ts';
 	import {
 		NOT_KNOWN,
@@ -53,6 +55,33 @@
 	$effect(() => {
 		if (open !== null) reveal();
 	});
+
+	// One open row at a time, so one detail at a time. The row's core fields are
+	// already on screen; the rest arrives when the row is opened, which is the
+	// first moment this route needs it at all. The symbol travels with the object
+	// so an open row can never show the row that was open before it.
+	let held = $state<{ symbol: string | null; detail: ElementDetail | null }>({
+		symbol: null,
+		detail: null
+	});
+
+	const detail = $derived(held.symbol === open ? held.detail : null);
+
+	$effect(() => {
+		const symbol = open;
+		let live = true;
+
+		if (symbol === null) return;
+
+		void getDetail(symbol).then((found) => {
+			if (live) held = { symbol, detail: found };
+		});
+
+		return () => {
+			live = false;
+		};
+	});
+
 </script>
 
 <!-- The route gives this the height that is left; the list is the one scroll
@@ -65,7 +94,7 @@
 			{@const isOpen = open === element.symbol}
 			{@const phase = element.phase === 'unknown' ? null : element.phase}
 			{@const configuration =
-				element.electronConfigurationSemantic ?? element.electronConfiguration}
+				detail?.electronConfigurationSemantic ?? detail?.electronConfiguration ?? null}
 			<li class="item" class:open={isOpen} style:--cat={categoryVar(element.category)}>
 				<button
 					type="button"
@@ -97,38 +126,38 @@
 						{#if isOpen}
 							<div class="detail-grid">
 								<div class="detail-photo">
-									<ElementImage {element} />
+									<ElementImage {element} image={detail?.image ?? null} />
 								</div>
 								<dl class="stats">
 									<Stat label="symbol" value={element.symbol} />
 									<Stat label="name" value={element.name} />
 									<Stat label="category" value={humanCategory(element.category)} />
 									<Stat label="phase" value={phase} />
-									<Stat label="atomic mass" value={formatMass(element.mass)} />
+									<Stat label="atomic mass" value={formatMass(detail?.mass ?? null)} />
 									<Stat
 										label="melting point"
-										value={formatKelvin(element.meltingPoint)}
+										value={formatKelvin(detail?.meltingPoint ?? null)}
 									/>
 									<Stat
 										label="boiling point"
-										value={formatKelvin(element.boilingPoint)}
+										value={formatKelvin(detail?.boilingPoint ?? null)}
 									/>
 									<Stat
 										label="density"
-										value={formatPlain(element.density?.value ?? null)}
-										unit={densityUnit(element.density?.unit ?? null)}
+										value={formatPlain(detail?.density?.value ?? null)}
+										unit={densityUnit(detail?.density?.unit ?? null)}
 									/>
 									<Stat
 										label="electronegativity"
-										value={formatPlain(element.electronegativity)}
+										value={formatPlain(detail?.electronegativity ?? null)}
 									/>
 									<Stat
 										label="electron configuration"
 										value={configuration}
 									/>
 								</dl>
-								{#if element.summary}
-									<p class="summary">{element.summary}</p>
+								{#if detail?.summary}
+									<p class="summary">{detail.summary}</p>
 								{:else}
 									<p class="summary empty" title={notKnownTitle('summary')}>
 										{NOT_KNOWN}

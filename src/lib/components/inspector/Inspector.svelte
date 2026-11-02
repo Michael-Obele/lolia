@@ -1,8 +1,10 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { untrack } from 'svelte';
 	import { tray } from '#lib/components/compare/tray.svelte.ts';
 	import { humanCategory } from '#lib/components/table/model.ts';
-	import type { Element } from '#lib/data/types.ts';
+	import { getDetail } from '#lib/data/details.ts';
+	import type { ElementCore, ElementDetail } from '#lib/data/types.ts';
 	import { categoryVar } from '#lib/design/category.ts';
 	import {
 		NOT_KNOWN,
@@ -22,7 +24,37 @@
 	import ShellDiagram from './ShellDiagram.svelte';
 	import Stat from './Stat.svelte';
 
-	let { element }: { element: Element } = $props();
+	// Core on the way in, detail underneath: the panel paints its name and its
+	// numbers the moment a cell is pressed, and the rest fills in when the detail
+	// chunk lands. Nothing here is a spinner.
+	let { element }: { element: ElementCore } = $props();
+
+	// The other half of the payload. `null` means "not here yet", not "unknown":
+	// a field the data genuinely lacks is a null *inside* the loaded object.
+	//
+	// The symbol travels with the object because a selection change must never show
+	// the previous element's numbers, not even for the frame before the new half
+	// resolves — a panel that flashes somebody else's melting point is worse than
+	// one that fills in.
+	let held = $state<{ symbol: string; detail: ElementDetail | null }>({
+		symbol: '',
+		detail: null
+	});
+
+	const detail = $derived(held.symbol === element.symbol ? held.detail : null);
+
+	$effect(() => {
+		const symbol = element.symbol;
+		let live = true;
+
+		void getDetail(symbol).then((found) => {
+			if (live) held = { symbol, detail: found };
+		});
+
+		return () => {
+			live = false;
+		};
+	});
 
 	let header: HTMLElement | undefined = $state();
 	let heading: HTMLHeadingElement | undefined = $state();
@@ -64,7 +96,7 @@
 	});
 
 	const configuration = $derived(
-		element.electronConfigurationSemantic ?? element.electronConfiguration
+		detail?.electronConfigurationSemantic ?? detail?.electronConfiguration ?? null
 	);
 
 	// The element whose numbers were on screen a moment ago. The `{#key}` below
@@ -72,18 +104,22 @@
 	// own last value; this is where that memory lives. `$effect.pre` because the old
 	// value has to be in place before the new one renders — and the read in the body
 	// is the subscription, so the teardown runs once per selection.
-	let previous = $state<Element | null>(null);
+	//
+	// Only the two fields that tween are kept: the atomic number is core, and the
+	// mass is read untracked at teardown so the detail arriving for the *new*
+	// element cannot overwrite the memory of the old one.
+	let previous = $state<{ number: number; mass: number | null } | null>(null);
 
 	$effect.pre(() => {
-		const shown = element;
+		const number = element.number;
 		return () => {
-			previous = shown;
+			previous = { number, mass: untrack(() => detail?.mass ?? null) };
 		};
 	});
 
 	const ionization = $derived(
-		element.ionizationEnergies.length
-			? element.ionizationEnergies.map((value) => decimal(value, 3)).join(', ')
+		detail?.ionizationEnergies.length
+			? detail.ionizationEnergies.map((value) => decimal(value, 3)).join(', ')
 			: null
 	);
 
@@ -91,12 +127,12 @@
 	const phase = $derived(element.phase === 'unknown' ? null : element.phase);
 
 	const radii = $derived([
-		{ label: 'empirical radius', value: element.radii.empirical },
-		{ label: 'calculated radius', value: element.radii.calculated },
-		{ label: 'van der Waals radius', value: element.radii.vanDerWaals },
-		{ label: 'covalent radius, single bond', value: element.radii.covalentSingle },
-		{ label: 'covalent radius, triple bond', value: element.radii.covalentTriple },
-		{ label: 'metallic radius', value: element.radii.metallic }
+		{ label: 'empirical radius', value: detail?.radii.empirical ?? null },
+		{ label: 'calculated radius', value: detail?.radii.calculated ?? null },
+		{ label: 'van der Waals radius', value: detail?.radii.vanDerWaals ?? null },
+		{ label: 'covalent radius, single bond', value: detail?.radii.covalentSingle ?? null },
+		{ label: 'covalent radius, triple bond', value: detail?.radii.covalentTriple ?? null },
+		{ label: 'metallic radius', value: detail?.radii.metallic ?? null }
 	]);
 
 	// The tray is capped at four, so this is a toggle rather than an add that can
@@ -157,7 +193,7 @@
 		{#key element.symbol}
 		<section class="group" style:--delay={stagger(0, 'content')}>
 			<h3 class="legend">photo</h3>
-			<ElementImage {element} />
+			<ElementImage {element} image={detail?.image ?? null} />
 		</section>
 
 		<section class="group" style:--delay={stagger(1, 'content')}>
@@ -185,20 +221,20 @@
 			<dl>
 				<Stat
 					label="atomic mass"
-					number={element.mass}
+					number={detail?.mass ?? null}
 					from={previous?.mass}
 					format={formatMass}
 					unit="u"
 				/>
 				<Stat
 					label="density"
-					value={formatPlain(element.density?.value ?? null)}
-					unit={densityUnit(element.density?.unit ?? null)}
+					value={formatPlain(detail?.density?.value ?? null)}
+					unit={densityUnit(detail?.density?.unit ?? null)}
 				/>
-				<Stat label="melting point" value={formatKelvin(element.meltingPoint)} />
-				<Stat label="boiling point" value={formatKelvin(element.boilingPoint)} />
-				<Stat label="electronegativity" value={formatPlain(element.electronegativity)} />
-				<Stat label="electron affinity" value={formatPlain(element.electronAffinity)} />
+				<Stat label="melting point" value={formatKelvin(detail?.meltingPoint ?? null)} />
+				<Stat label="boiling point" value={formatKelvin(detail?.boilingPoint ?? null)} />
+				<Stat label="electronegativity" value={formatPlain(detail?.electronegativity ?? null)} />
+				<Stat label="electron affinity" value={formatPlain(detail?.electronAffinity ?? null)} />
 			</dl>
 		</section>
 
@@ -207,7 +243,7 @@
 			<dl>
 				<Stat
 					label="electrons per shell"
-					value={element.shells.length ? element.shells.join(', ') : null}
+					value={detail?.shells.length ? detail.shells.join(', ') : null}
 				/>
 				<Stat label="electron configuration" value={configuration} />
 				<Stat label="ionization energies" value={ionization} />
@@ -215,19 +251,23 @@
 					<Stat label={row.label} value={formatPicometres(row.value)} />
 				{/each}
 			</dl>
-			<ShellDiagram shells={element.shells} symbol={element.symbol} name={element.name} />
+			<!-- The diagram needs the shells, so it exists only once they do: an empty
+			     ring set would draw a nucleus with nothing around it. -->
+			{#if detail}
+				<ShellDiagram shells={detail.shells} symbol={element.symbol} name={element.name} />
+			{/if}
 		</section>
 
 		<section class="group" style:--delay={stagger(4, 'content')}>
 			<h3 class="legend">history</h3>
 			<dl>
-				<Stat label="discovered by" value={element.discoveredBy} />
-				<Stat label="named by" value={element.namedBy} />
+				<Stat label="discovered by" value={detail?.discoveredBy ?? null} />
+				<Stat label="named by" value={detail?.namedBy ?? null} />
 				<div class="source-row">
 					<dt>source</dt>
 					<dd>
-						{#if element.source}
-							<a href={element.source}>Wikipedia</a>
+						{#if detail?.source}
+							<a href={detail.source}>Wikipedia</a>
 						{:else}
 							<span class="empty" title={notKnownTitle('source')}>{NOT_KNOWN}</span>
 						{/if}
@@ -237,8 +277,8 @@
 		</section>
 
 		<section class="group" style:--delay={stagger(5, 'content')}>
-			{#if element.summary}
-				<p class="summary">{element.summary}</p>
+			{#if detail?.summary}
+				<p class="summary">{detail.summary}</p>
 			{:else}
 				<p class="summary empty" title={notKnownTitle('summary')}>{NOT_KNOWN}</p>
 			{/if}

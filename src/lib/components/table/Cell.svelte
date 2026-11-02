@@ -1,10 +1,11 @@
 <script lang="ts">
-	import type { Element } from '#lib/data/types.ts';
+	import type { ElementCore } from '#lib/data/types.ts';
 	import { categoryVar } from '#lib/design/category.ts';
 	import { stagger } from '#lib/motion/stagger.ts';
 	import { humanCategory } from './model.ts';
 
-	let { element, tabindex = -1 }: { element: Element; tabindex?: number } =
+	// A cell prints eight fields and owns none of the payload's detail half.
+	let { element, tabindex = -1 }: { element: ElementCore; tabindex?: number } =
 		$props();
 
 	// The one string a screen reader hears per cell. The visible text is
