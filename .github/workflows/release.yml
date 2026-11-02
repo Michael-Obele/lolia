@@ -109,16 +109,31 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-bun-
 
-      # Capacitor 8 targets SDK 35 and needs a modern JDK to do it.
-      - uses: actions/setup-java@v4
+      # Capacitor 8 compiles against SDK 36 and needs a modern JDK to do it.
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '21'
 
-      - uses: android-actions/setup-android@v3
+      # v3 still asks sdkmanager for `tools`, a package Google stopped serving;
+      # that request is a hard failure there and only a warning from v4 onward.
+      # See https://github.com/android-actions/setup-android#the-deprecated-tools-package
+      - uses: android-actions/setup-android@v4
+        with:
+          packages: platform-tools
+          accept-android-sdk-licenses: true
 
       - name: Install
         run: bun install --frozen-lockfile
+
+      # Explicitly, because AGP 8.13 needs the platform and build-tools for the
+      # compileSdk in android/variables.gradle (36). Relying on the runner image
+      # or on `sdkDownload` makes the build depend on a machine we do not pin.
+      - name: Install the SDK packages the build needs
+        run: |
+          sdkmanager --install \
+            "platforms;android-36" \
+            "build-tools;36.0.0"
 
       # The web assets have to exist before `cap sync` copies them into the
       # Android project, and `cap sync` has to run before Gradle sees a project.
