@@ -10,7 +10,8 @@
 	const views = [
 		{ href: '/', label: 'Table' },
 		{ href: '/list', label: 'List' },
-		{ href: '/trends', label: 'Trends' }
+		{ href: '/trends', label: 'Trends' },
+		{ href: '/compare', label: 'Compare' }
 	];
 
 	const here = $derived(page.url.pathname);
