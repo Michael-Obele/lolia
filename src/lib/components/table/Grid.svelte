@@ -2,6 +2,7 @@
 	import { elements } from '#lib/data/elements.generated.ts';
 	import { markOrigin } from '#lib/motion/flip.ts';
 	import { motionOk } from '#lib/motion/reduced.ts';
+	import ScrollArea from '#lib/components/ui/scroll-area/scroll-area.svelte';
 	import Cell from './Cell.svelte';
 	import Legend from './Legend.svelte';
 	import Rail from './Rail.svelte';
@@ -129,64 +130,66 @@
 	}
 </script>
 
-<div
-	class="table"
-	bind:this={table}
-	style:grid-template-columns={columnTemplate}
-	style:grid-template-rows={rowTemplate}
-	data-hover-group={hover?.group ?? undefined}
-	data-hover-period={hover?.period ?? undefined}
-	data-hover-row={hover?.row ?? undefined}
-	data-motion={motionOk() ? 'ok' : 'off'}
->
-	<Rail {model} {hover} />
-
+<ScrollArea orientation="horizontal" class="mx-auto w-full max-w-272 min-w-0">
 	<div
-		class="cells"
-		class:igniting={phase === 'igniting'}
-		class:fading={phase === 'fading'}
-		role="grid"
-		tabindex="-1"
-		aria-label="Periodic table of the elements, {elements.length} elements"
-		aria-rowcount={model.rowCount}
-		aria-colcount={model.columnCount}
-		onkeydown={onKeydown}
-		onpointerover={onPointerOver}
-		onpointerleave={onPointerLeave}
-		onpointerdown={onPointerDown}
-		onfocusin={onFocusIn}
-		onanimationend={onCellAnimationEnd}
+		class="table"
+		bind:this={table}
+		style:grid-template-columns={columnTemplate}
+		style:grid-template-rows={rowTemplate}
+		data-hover-group={hover?.group ?? undefined}
+		data-hover-period={hover?.period ?? undefined}
+		data-hover-row={hover?.row ?? undefined}
+		data-motion={motionOk() ? 'ok' : 'off'}
 	>
-		{#each model.rows as y, i (y)}
-			<!-- `aria-rowindex` is the data's y, not the DOM row number: row 8 is absent
-			     from the DOM, so the series rows are DOM 8 and 9 but grid rows 9 and 10.
-			     The row states its own short name, or a `row` names itself from its cells
-			     and every row is announced as a list of everything inside it. -->
-			<div
-				class="row"
-				role="row"
-				aria-rowindex={y}
-				aria-label={model.rowLabels[i]}
-			>
-				{#each model.byRow[i] as element (element.symbol)}
-					<!-- A row may only own gridcells, and the cell must be a real link. The
-					     wrapper is display: contents, so the anchor keeps both its link
-					     semantics and its placement in the subgrid. -->
-					<div
-						class="gridcell"
-						role="gridcell"
-						aria-colindex={element.position.x}
-					>
-						<Cell
-							{element}
-							tabindex={element.symbol === cursor ? 0 : -1}
-						/>
-					</div>
-				{/each}
-			</div>
-		{/each}
+		<Rail {model} {hover} />
+
+		<div
+			class="cells"
+			class:igniting={phase === 'igniting'}
+			class:fading={phase === 'fading'}
+			role="grid"
+			tabindex="-1"
+			aria-label="Periodic table of the elements, {elements.length} elements"
+			aria-rowcount={model.rowCount}
+			aria-colcount={model.columnCount}
+			onkeydown={onKeydown}
+			onpointerover={onPointerOver}
+			onpointerleave={onPointerLeave}
+			onpointerdown={onPointerDown}
+			onfocusin={onFocusIn}
+			onanimationend={onCellAnimationEnd}
+		>
+			{#each model.rows as y, i (y)}
+				<!-- `aria-rowindex` is the data's y, not the DOM row number: row 8 is absent
+				     from the DOM, so the series rows are DOM 8 and 9 but grid rows 9 and 10.
+				     The row states its own short name, or a `row` names itself from its cells
+				     and every row is announced as a list of everything inside it. -->
+				<div
+					class="row"
+					role="row"
+					aria-rowindex={y}
+					aria-label={model.rowLabels[i]}
+				>
+					{#each model.byRow[i] as element (element.symbol)}
+						<!-- A row may only own gridcells, and the cell must be a real link. The
+						     wrapper is display: contents, so the anchor keeps both its link
+						     semantics and its placement in the subgrid. -->
+						<div
+							class="gridcell"
+							role="gridcell"
+							aria-colindex={element.position.x}
+						>
+							<Cell
+								{element}
+								tabindex={element.symbol === cursor ? 0 : -1}
+							/>
+						</div>
+					{/each}
+				</div>
+			{/each}
+		</div>
 	</div>
-</div>
+</ScrollArea>
 
 <Legend categories={model.categories} />
 
@@ -197,14 +200,10 @@
 	.table {
 		display: grid;
 		gap: 0.25rem;
-		max-inline-size: 68rem;
-		margin-inline: auto;
-		/* The pan surface. The columns have an em floor, so below a certain width
-		   they outgrow the viewport by design: the table pans instead of squeezing
-		   the symbol. The inline padding is the room the focus ring needs at the
+		/* The columns have an em floor, so below a certain width they outgrow the
+		   viewport by design: the pan surface scrolls instead of squeezing the
+		   symbol. The inline padding is the room the focus ring needs at the
 		   scrolled edge. */
-		overflow-x: auto;
-		overscroll-behavior-x: contain;
 		padding-inline: 0.125rem;
 	}
 

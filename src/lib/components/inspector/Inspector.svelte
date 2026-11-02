@@ -17,6 +17,7 @@
 	import { takeOrigin, travel } from '#lib/motion/flip.ts';
 	import { motionOk } from '#lib/motion/reduced.ts';
 	import { stagger } from '#lib/motion/stagger.ts';
+	import ScrollArea from '#lib/components/ui/scroll-area/scroll-area.svelte';
 	import ElementImage from './ElementImage.svelte';
 	import ShellDiagram from './ShellDiagram.svelte';
 	import Stat from './Stat.svelte';
@@ -129,7 +130,13 @@
 		Compare
 	</button>
 
-	<div class="body" class:swap={motionOk()}>
+	<!-- The panel's only scroll region, in the sheet and beside the table alike. Its
+	     viewport contains the overscroll, so reading the panel never moves the
+	     table behind it and never starts a sheet drag. -->
+	<ScrollArea
+		class="min-h-0 flex-1"
+		viewportClass="px-4 pt-3 pb-4 {motionOk() ? 'groups-swap' : ''}"
+	>
 		<!-- Keyed by the symbol, so a change of selection remounts the groups and
 		     the staggered swap replays; the block stays at one indent depth so the
 		     diff of adding it is two lines rather than ninety. -->
@@ -211,7 +218,7 @@
 			<p class="attrib"><a href="/about">Attribution</a></p>
 		</section>
 		{/key}
-	</div>
+	</ScrollArea>
 </section>
 
 <style>
@@ -377,15 +384,6 @@
 		outline-offset: 2px;
 	}
 
-	/* The only scroll container in the app: overscroll stays inside it, so reading
-	   the panel never moves the table behind it. */
-	.body {
-		min-block-size: 0;
-		overflow-y: auto;
-		overscroll-behavior: contain;
-		padding: 0.75rem 1rem 1rem;
-	}
-
 	dl {
 		margin: 0;
 	}
@@ -422,8 +420,9 @@
 
 	/* A new selection swaps the contents, it never replaces them in one frame:
 	   each group fades up 20 ms after the one above it, capped so a longer panel
-	   does not grow a longer wait. */
-	.swap .group {
+	   does not grow a longer wait. The hook sits on the scroll viewport, which
+	   bits-ui renders, so it is reached by name. */
+	:global(.groups-swap) .group {
 		animation: group-in var(--dur-fast) var(--ease-out) var(--delay) both;
 	}
 

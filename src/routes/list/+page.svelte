@@ -4,12 +4,15 @@
 	import { elements } from '#lib/data/elements.generated.ts';
 </script>
 
-<main class="min-h-dvh bg-bg px-4 py-6 text-ink sm:px-6">
+<main class="flex h-dvh flex-col bg-bg px-4 py-6 text-ink sm:px-6">
 	<AppHeader />
 
-	<!-- The heading is the document's, not the list's: it says how many rows
-	     follow before the reader starts counting them. -->
-	<section class="mx-auto max-w-272" aria-labelledby="list-heading">
+	<!-- A column that owns the height the header leaves, so the list is the only
+	     scroll region on this page and the document never scrolls under it. -->
+	<section
+		class="mx-auto flex min-h-0 w-full max-w-272 flex-1 flex-col"
+		aria-labelledby="list-heading"
+	>
 		<h2 id="list-heading" class="list-heading">
 			{elements.length} elements, by atomic number
 		</h2>

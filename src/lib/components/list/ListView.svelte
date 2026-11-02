@@ -1,4 +1,5 @@
 <script lang="ts">
+	import ScrollArea from '#lib/components/ui/scroll-area/scroll-area.svelte';
 	import { humanCategory } from '#lib/components/table/model.ts';
 	import { elements } from '#lib/data/elements.generated.ts';
 	import { NOT_KNOWN, notKnownTitle } from '#lib/format/units.ts';
@@ -9,24 +10,28 @@
 	const items = elements;
 </script>
 
-<!-- `role="list"` restates what `<ul>` already means, because `list-style: none`
-     drops list semantics in some screen readers and this view exists for them. -->
-<ul class="list" role="list">
-	{#each items as element (element.symbol)}
-		{@const phase = element.phase === 'unknown' ? null : element.phase}
-		<li class="item">
-			<a class="entry" href="/element/{element.symbol}">
-				<span class="number">{element.number}</span>
-				<span class="symbol">{element.symbol}</span>
-				<span class="name">{element.name}</span>
-				<span class="category">{humanCategory(element.category)}</span>
-				<span class="phase" title={phase === null ? notKnownTitle('phase') : undefined}
-					>{phase ?? NOT_KNOWN}</span
-				>
-			</a>
-		</li>
-	{/each}
-</ul>
+<!-- The route gives this the height that is left; the list is the one scroll
+     region on the page, so the document itself never scrolls under it. -->
+<ScrollArea class="min-h-0 flex-1">
+	<!-- `role="list"` restates what `<ul>` already means, because `list-style: none`
+	     drops list semantics in some screen readers and this view exists for them. -->
+	<ul class="list" role="list">
+		{#each items as element (element.symbol)}
+			{@const phase = element.phase === 'unknown' ? null : element.phase}
+			<li class="item">
+				<a class="entry" href="/element/{element.symbol}">
+					<span class="number">{element.number}</span>
+					<span class="symbol">{element.symbol}</span>
+					<span class="name">{element.name}</span>
+					<span class="category">{humanCategory(element.category)}</span>
+					<span class="phase" title={phase === null ? notKnownTitle('phase') : undefined}
+						>{phase ?? NOT_KNOWN}</span
+					>
+				</a>
+			</li>
+		{/each}
+	</ul>
+</ScrollArea>
 
 <style>
 	.list {
