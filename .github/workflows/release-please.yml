@@ -1,0 +1,67 @@
+name: Release Please
+
+# Every commit that lands on main opens (or updates) one release PR. That PR
+# carries the only hand-edited version in the repository — `package.json` — plus
+# the changelog. Merging it is the release: release-please tags `vX.Y.Z`, the tag
+# fires release.yml, and the three desktop runners and the Android job build it.
+#
+# The bump rule lives in release-please-config.json and is pinned by
+# tests/release-bump.test.ts:
+#   every commit type  -> patch
+#   a `!` (or BREAKING CHANGE) -> minor
+#   a major            -> only with an explicit `Release-As:` footer
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: release-please-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    name: Release PR
+    runs-on: ubuntu-latest
+    steps:
+      # Full history and tags: the guard below asks git what the last release
+      # was, and release-please reads the commit log since that tag.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # `bump-minor-pre-major` is what turns `!` into a minor instead of a major,
+      # but it only holds while the version is 0.x — above 1.0.0 release-please
+      # would go back to bumping the major. This makes "no major unless I say so"
+      # an enforced rule rather than a side effect of still being 0.x, and it runs
+      # before the action so a refused major never reaches a tag.
+      - name: Refuse an unrequested major bump
+        run: |
+          base=$(git describe --tags --abbrev=0 --match 'v*' || true)
+          if [ -z "$base" ]; then
+            echo "No v* tag yet — nothing to compare a major jump against."
+            exit 0
+          fi
+          old=${base#v}
+          new=$(node -p "require('./package.json').version")
+          if [ "${new%%.*}" -le "${old%%.*}" ]; then
+            echo "version $new does not raise the major above $old — allowed."
+            exit 0
+          fi
+          if git log "$base"..HEAD --format=%B | grep -qi '^Release-As:'; then
+            echo "major $old -> $new is explicitly requested by a Release-As: footer."
+            exit 0
+          fi
+          echo "::error::package.json raises the major $old -> $new with no 'Release-As:' footer. If that is intended, add a commit containing a 'Release-As: $new' footer; otherwise drop the bump."
+          exit 1
+
+      - uses: googleapis/release-please-action@v5
+        id: release
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
