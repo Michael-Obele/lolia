@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.2](https://github.com/Michael-Obele/lolia/compare/v0.1.1...v0.1.2) (2026-11-07)
+
+
+### Fixes
+
+* **build:** sync version shells to 0.1.1 ([e01c4ea](https://github.com/Michael-Obele/lolia/commit/e01c4eaba1f46711336a73043f5a9dba487061c3))
+
 ## [0.1.1](https://github.com/Michael-Obele/lolia/compare/v0.1.0...v0.1.1) (2026-11-03)
 
 
