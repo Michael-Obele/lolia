@@ -1,0 +1,19 @@
+#!/bin/sh
+# Block Copilot co-author trailers — strips any Co-authored-by: Copilot line
+# so VS Code's git.addAICoAuthor can never sneak it back in, even if the
+# setting is reset by an update or a different machine.
+#
+# To make it a hard error instead of an auto-strip, replace the sed+exit 0
+# with: echo "blocked" >&2; exit 1
+
+MSG_FILE="$1"
+
+if grep -qi '^Co-authored-by:.*copilot' "$MSG_FILE"; then
+	echo "[commit-msg hook] stripping Co-authored-by: Copilot trailer" >&2
+	# GNU sed and BSD sed both handle -i with an extension; use a portable tmp file
+	tmp="$(mktemp)"
+	grep -vi '^Co-authored-by:.*copilot' "$MSG_FILE" > "$tmp" && cat "$tmp" > "$MSG_FILE"
+	rm -f "$tmp"
+fi
+
+exit 0
