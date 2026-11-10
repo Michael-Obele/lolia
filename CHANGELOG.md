@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.5](https://github.com/Michael-Obele/lolia/compare/v0.1.4...v0.1.5) (2026-11-10)
+
+
+### CI
+
+* **release:** publish the draft after builds ([576fb7f](https://github.com/Michael-Obele/lolia/commit/576fb7f64771dd67eb0231b45866a2dd97d63e6c))
+
 ## [0.1.4](https://github.com/Michael-Obele/lolia/compare/v0.1.3...v0.1.4) (2026-11-10)
 
 
