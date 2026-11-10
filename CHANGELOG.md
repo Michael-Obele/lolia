@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.4](https://github.com/Michael-Obele/lolia/compare/v0.1.3...v0.1.4) (2026-11-10)
+
+
+### Fixes
+
+* **release:** sync version before tauri build ([8f607da](https://github.com/Michael-Obele/lolia/commit/8f607daff1902f02787c8df6bc6c0b55bea2cc2a))
+
 ## [0.1.3](https://github.com/Michael-Obele/lolia/compare/v0.1.2...v0.1.3) (2026-11-10)
 
 

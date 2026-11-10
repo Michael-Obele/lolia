@@ -9,7 +9,7 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 102
         // x-release-please-start-version
-        versionName "0.1.2"
+        versionName "0.1.4"
         // x-release-please-end
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
