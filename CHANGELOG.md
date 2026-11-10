@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.3](https://github.com/Michael-Obele/lolia/compare/v0.1.2...v0.1.3) (2026-11-10)
+
+
+### Fixes
+
+* **release:** dispatch on tag, unsigned android ([0e1fd88](https://github.com/Michael-Obele/lolia/commit/0e1fd884f07843c4682a6877b95b19d881c539d4))
+
 ## [0.1.2](https://github.com/Michael-Obele/lolia/compare/v0.1.1...v0.1.2) (2026-11-07)
 
 
