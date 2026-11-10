@@ -83,6 +83,9 @@ jobs:
       - name: Install
         run: bun install --frozen-lockfile
 
+      - name: Sync version
+        run: bun run version:sync
+
       # `beforeBuildCommand` in tauri.conf.json runs the same sync and build the
       # web deploy does, so the desktop binary and the site are one artifact.
       - name: Build and attach to the release
