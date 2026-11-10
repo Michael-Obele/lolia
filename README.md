@@ -12,18 +12,20 @@ desktop app for Windows, macOS and Linux, and the web.
 
 ## What ships
 
-| Output | Shell | Artifact |
-| --- | --- | --- |
-| Android | Capacitor | `.aab` for Play, `.apk` for a device |
-| Windows | Tauri | `.msi` and `.exe` (NSIS) |
-| macOS | Tauri | `.dmg` |
-| Linux | Tauri | `.AppImage` and `.deb` |
-| Web | none — the same `build/` directory | static site on Cloudflare Pages |
+| Output  | Shell                              | Artifact                             |
+| ------- | ---------------------------------- | ------------------------------------ |
+| Android | Capacitor                          | `.aab` for Play, `.apk` for a device |
+| Windows | Tauri                              | `.msi` and `.exe` (NSIS)             |
+| macOS   | Tauri                              | `.dmg`                               |
+| Linux   | Tauri                              | `.AppImage` and `.deb`               |
+| Web     | none — the same `build/` directory | static site on Cloudflare Pages      |
 
-All five come out of one build. `.github/workflows/release.yml` runs on a `v*` tag:
-three desktop runners build with `tauri-action` and attach their installers to the
-release, and an Android job produces the bundle. `.github/workflows/deploy-web.yml`
-publishes the same `build/` directory to a domain root.
+All five come out of one build. Merging the release PR makes release-please cut the
+tag and dispatch `.github/workflows/release.yml` for it — a tag pushed with
+`GITHUB_TOKEN` does not start workflows on its own — so three desktop runners build
+with `tauri-action`, an Android job produces the bundle and the APK, and all of
+them are attached to the release. `.github/workflows/deploy-web.yml` publishes the
+same `build/` directory to a domain root.
 
 The version is never written down here or in the code. `package.json` is the only place
 it is typed; `scripts/sync-version.ts` copies it into `tauri.conf.json`, `Cargo.toml` and
@@ -48,15 +50,15 @@ The port is pinned to 5174 with `strictPort`. 5173 is left to other projects on 
 machine, and Tauri's `devUrl` points at 5174, so a busy port fails loudly instead of
 opening a blank desktop window.
 
-| Command | What it does |
-| --- | --- |
-| `bun run dev` | the app in a browser |
-| `bun run build` | regenerates the element data, then writes `build/` |
-| `bun run preview` | serves `build/` locally |
-| `bun run check` | type-check the app, the build scripts and the tests |
-| `bun test` | the unit tests |
-| `bun run version:sync` | copies `package.json`'s version into every shell |
-| `bun run data:build` | rebuilds `src/lib/data/*.generated.ts` from the vendored JSON |
+| Command                | What it does                                                  |
+| ---------------------- | ------------------------------------------------------------- |
+| `bun run dev`          | the app in a browser                                          |
+| `bun run build`        | regenerates the element data, then writes `build/`            |
+| `bun run preview`      | serves `build/` locally                                       |
+| `bun run check`        | type-check the app, the build scripts and the tests           |
+| `bun test`             | the unit tests                                                |
+| `bun run version:sync` | copies `package.json`'s version into every shell              |
+| `bun run data:build`   | rebuilds `src/lib/data/*.generated.ts` from the vendored JSON |
 
 ## Build each shell
 
@@ -78,8 +80,8 @@ require a `base` path and break both of them.
 **The Windows and macOS installers are unsigned.** There is no Windows code-signing
 certificate and no paid Apple developer account behind this project, so:
 
-- **Windows** shows a SmartScreen warning. *More info* → *Run anyway*.
-- **macOS** refuses the first launch. Allow it in *System Settings → Privacy & Security*,
+- **Windows** shows a SmartScreen warning. _More info_ → _Run anyway_.
+- **macOS** refuses the first launch. Allow it in _System Settings → Privacy & Security_,
   or clear the quarantine flag:
   `xattr -d com.apple.quarantine /Applications/Lolia.app`.
 
@@ -107,15 +109,15 @@ the app, which is also where the version and the keyboard shortcuts live.
 
 ## Repository layout
 
-| Path | What it is |
-| --- | --- |
-| `src/` | the SvelteKit app |
-| `src/lib/data/` | the generated element data and the attribution it must carry |
-| `scripts/` | the data build and the version sync |
-| `android/` | the Capacitor Android project |
-| `src-tauri/` | the Tauri desktop project |
-| `tests/` | the unit tests: the ranker, the formatters, the tokens, the motion core |
-| `.github/workflows/` | `ci`, `release`, `deploy-web` |
+| Path                 | What it is                                                              |
+| -------------------- | ----------------------------------------------------------------------- |
+| `src/`               | the SvelteKit app                                                       |
+| `src/lib/data/`      | the generated element data and the attribution it must carry            |
+| `scripts/`           | the data build and the version sync                                     |
+| `android/`           | the Capacitor Android project                                           |
+| `src-tauri/`         | the Tauri desktop project                                               |
+| `tests/`             | the unit tests: the ranker, the formatters, the tokens, the motion core |
+| `.github/workflows/` | `ci`, `release`, `deploy-web`                                           |
 
 The app runs as a single-page app: `@sveltejs/adapter-static` with
 `fallback: 'index.html'` and `ssr = false`. Both native shells load it from disk, so

@@ -3,9 +3,21 @@ name: Release
 # A tag is the release. Three desktop runners build the same frontend with the
 # same Tauri config, and one Android job builds the same frontend again for the
 # Play Store — one source, five artifacts, all attached to the tag.
+#
+# release-please creates the tag with GITHUB_TOKEN, and a tag pushed by that
+# token does not trigger a `push` workflow (GitHub suppresses recursive runs).
+# `workflow_dispatch` is the documented exception, so release-please.yml
+# dispatches this workflow explicitly with the tag it just cut. The `push`
+# trigger stays for a tag pushed by hand.
 on:
   push:
-    tags: ['v*']
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to build, e.g. v0.1.2"
+        required: true
+        type: string
 
 concurrency:
   group: release-${{ github.ref }}
@@ -29,7 +41,11 @@ jobs:
             os: macos-latest
     runs-on: ${{ matrix.os }}
     steps:
+      # For a dispatched run the tag arrives as an input; for a tag push it is
+      # the ref itself. One expression covers both.
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
 
       - uses: oven-sh/setup-bun@v2
         with:
@@ -74,10 +90,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tagName: ${{ github.ref_name }}
-          releaseName: "Lolia ${{ github.ref_name }}"
+          tagName: ${{ inputs.tag || github.ref_name }}
+          releaseName: "Lolia ${{ inputs.tag || github.ref_name }}"
           releaseBody: |
-            Lolia ${{ github.ref_name }}.
+            Lolia ${{ inputs.tag || github.ref_name }}.
 
             Installers are **unsigned**. Windows shows a SmartScreen warning and macOS
             refuses the first launch until you allow it in System Settings. See the
@@ -97,6 +113,8 @@ jobs:
     continue-on-error: true
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
 
       - uses: oven-sh/setup-bun@v2
         with:
@@ -113,7 +131,7 @@ jobs:
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: '21'
+          java-version: "21"
 
       # v3 still asks sdkmanager for `tools`, a package Google stopped serving;
       # that request is a hard failure there and only a warning from v4 onward.
@@ -211,3 +229,33 @@ jobs:
             android/app/build/outputs/apk/release/*.apk
           if-no-files-found: warn
           retention-days: 14
+
+      # The README promises five artifacts on the release, so the Android ones
+      # have to reach it too — a workflow artifact is not downloadable from the
+      # releases page. The desktop job may not have created the draft yet, and
+      # the upload can race it, so create the draft if it is missing and retry.
+      - name: Attach the Android artifacts to the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          shopt -s nullglob
+          files=(android/app/build/outputs/bundle/release/*.aab android/app/build/outputs/apk/release/*.apk)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "::warning::No Android artifact was produced, so none was attached."
+            exit 0
+          fi
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            gh release create "$TAG" --draft --title "Lolia $TAG" \
+              --notes "Lolia $TAG. Element data: CC BY-SA 3.0, from Bowserinator/Periodic-Table-JSON."
+          fi
+          for attempt in 1 2 3 4 5; do
+            if gh release upload "$TAG" "${files[@]}" --clobber; then
+              echo "attached ${#files[@]} Android artifact(s) to $TAG"
+              exit 0
+            fi
+            echo "upload attempt $attempt failed; retrying in 15s"
+            sleep 15
+          done
+          echo "::error::Could not attach the Android artifacts to $TAG."
+          exit 1

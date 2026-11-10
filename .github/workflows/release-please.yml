@@ -22,6 +22,11 @@ concurrency:
 permissions:
   contents: write
   pull-requests: write
+  # Needed to dispatch release.yml. The tag this action creates is pushed with
+  # GITHUB_TOKEN, and GitHub does not start `push` workflows for that token —
+  # otherwise v0.1.1 and v0.1.2 were tagged with no build attached. A dispatched
+  # run is the documented exception.
+  actions: write
 
 jobs:
   release-please:
@@ -65,3 +70,15 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
+
+      # The tag exists but no workflow heard about it (see `actions: write`
+      # above), so ask release.yml for this tag directly. It is dispatched from
+      # `main` because workflow_dispatch only sees the workflow file on the ref
+      # it is dispatched at, and a tag cut before this step existed has no way
+      # to run it.
+      - name: Build the release the tag asked for
+        if: ${{ steps.release.outputs.release_created == 'true' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.release.outputs.tag_name }}
+        run: gh workflow run release.yml --ref main -f tag="$TAG"
