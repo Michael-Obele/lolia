@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.6](https://github.com/Michael-Obele/lolia/compare/v0.1.5...v0.1.6) (2026-11-10)
+
+
+### Fixes
+
+* **release:** pass repo to gh release edit ([156f1dd](https://github.com/Michael-Obele/lolia/commit/156f1ddc74e73332c4c06e47fc355cb3f2d6ed3d))
+
 ## [0.1.5](https://github.com/Michael-Obele/lolia/compare/v0.1.4...v0.1.5) (2026-11-10)
 
 
