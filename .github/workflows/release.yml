@@ -262,3 +262,20 @@ jobs:
           done
           echo "::error::Could not attach the Android artifacts to $TAG."
           exit 1
+
+  # The release stays a draft while the three desktop runners and the Android
+  # job upload into it, then this flips it public in one step. tauri-action
+  # cannot do it: attaching to an existing draft requires releaseDraft: true.
+  publish:
+    name: Publish the release
+    needs: [desktop, android]
+    if: always() && needs.desktop.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Publish the draft
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ inputs.tag || github.ref_name }}
+        run: gh release edit "$TAG" --draft=false --latest
