@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.1.7](https://github.com/Michael-Obele/lolia/compare/v0.1.6...v0.1.7) (2026-11-15)
+
+
+### Fixes
+
+* **release:** let any commit type cut a version, and check the release PR ([72b39e1](https://github.com/Michael-Obele/lolia/commit/72b39e1554c076c74ad5b54ae947fc4a6e3f80f4))
+
+
+### Chores
+
+* **dev:** wire mcp-bridge plugin and emulator dev server ([9e9a220](https://github.com/Michael-Obele/lolia/commit/9e9a220f89b6fcea6e2cc6be5c0beb8a2842b148))
+
 ## [0.1.6](https://github.com/Michael-Obele/lolia/compare/v0.1.5...v0.1.6) (2026-11-10)
 
 
