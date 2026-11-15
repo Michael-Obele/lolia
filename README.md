@@ -71,6 +71,13 @@ a keystore, so the CI job passes `--keystorepath`, `--keystorepass`, `--keystore
 and `--keystorealiaspass` from repository secrets when they exist. Without them the
 artifact is **unsigned**: it installs on a device, and Play will refuse it.
 
+Live reload is opt-in: `CAP_LIVE_RELOAD=1 bunx cap sync android` points the WebView at
+`http://localhost:5174` (reach it from the emulator with
+`adb reverse tcp:5174 tcp:5174`) and opens the devtools socket. Capacitor honours that
+setting in release builds as well, so a release must be synced without it — a plain
+`bunx cap sync android` is the release-correct state, and the release job refuses to
+package a bundle whose generated `capacitor.config.json` still carries a dev server.
+
 **Web.** `bun run build`, then serve `build/` from a domain root. The asset URLs are
 absolute (`/_app/...`), which is what the two native shells need; a subpath deploy would
 require a `base` path and break both of them.

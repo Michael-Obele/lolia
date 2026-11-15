@@ -164,6 +164,21 @@ jobs:
           bun run build
           bunx cap sync android
 
+      # `cap sync` copies capacitor.config.ts into the app verbatim, and Capacitor
+      # honours `server.url` in release builds too — so a config left in live-reload
+      # mode ships an app that opens a blank page looking for a dev server on the
+      # device. v0.1.7 shipped like that. Check the generated file instead of
+      # trusting the source config to have been right.
+      - name: Refuse to package a live-reload shell
+        run: |
+          config=android/app/src/main/assets/capacitor.config.json
+          jq . "$config"
+          if jq -e '.server.url // .android.webContentsDebuggingEnabled' "$config" >/dev/null; then
+            echo "::error::$config carries a development-only setting - the app would load a dev server instead of the bundled build."
+            exit 1
+          fi
+          echo "$config carries no development-only server configuration."
+
       - name: Decode the keystore, if the secret exists
         id: keystore
         env:
