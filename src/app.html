@@ -5,6 +5,14 @@
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<meta name="text-scale" content="scale" />
+		<link rel="icon" href="%sveltekit.assets%/favicon.svg" type="image/svg+xml" />
+		<link rel="icon" href="%sveltekit.assets%/favicon-32.png" sizes="32x32" type="image/png" />
+		<link rel="apple-touch-icon" href="%sveltekit.assets%/apple-touch-icon.png" />
+		<link rel="manifest" href="%sveltekit.assets%/site.webmanifest" />
+		<!-- Browser chrome follows the OS here, which is the one theme signal a page
+		     gets before the stored preference in localStorage is read. -->
+		<meta name="theme-color" content="#f7f3ed" media="(prefers-color-scheme: light)" />
+		<meta name="theme-color" content="#161110" media="(prefers-color-scheme: dark)" />
 		<!-- Blocking and un-nonced: a future `script-src 'self'` CSP blocks this
 		     silently — SvelteKit does not nonce app.html scripts — and the symptom
 		     is a theme flash, not an error. -->

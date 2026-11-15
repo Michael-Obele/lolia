@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="ic_launcher_background">#FFFFFF</color>
+    <!-- The paper background of the tile. Was #FFFFFF from the Capacitor scaffold,
+         which left the launcher icon a white square. -->
+    <color name="ic_launcher_background">#F7F3ED</color>
 </resources>

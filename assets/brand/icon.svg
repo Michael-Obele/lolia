@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-label="Lolia">
+  <!--
+    The app icon. One element cell for "Lo": the symbol a periodic table would
+    give this app, drawn as geometry rather than set in a font, so it renders
+    identically on every platform and needs no font file alongside it.
+
+    Colours come from src/routes/layout.css: the paper background token for the
+    tile, the ink token for the L, and the cat-transition token (cobalt) for the
+    o, so the mark carries the same accent the charts use.
+
+    Proportions are those of a bold geometric sans at cap 560: stem 80
+    (0.143 of cap), x-height 400 (0.714 of cap), and an o ring 84 thick against
+    a 116 counter. The ring is 4 units thicker than the stem on purpose: a curved
+    stroke of equal measure reads lighter than a straight one.
+
+    Regenerate the platform icons from this file with:
+      ./node_modules/.bin/tauri icon assets/brand/icon.svg
+  -->
+  <rect width="1024" height="1024" rx="232" fill="#f7f3ed"/>
+  <!-- L: stem y 232 to 792, foot 336 long, both 80 thick. -->
+  <path fill="#191310" d="M131 232h80v480h256v80H131z"/>
+  <!-- o: centre 693,592. Outer r 200, counter r 116. -->
+  <path fill="#4f7de0" fill-rule="evenodd" d="M493 592a200 200 0 1 1 400 0a200 200 0 1 1-400 0zM577 592a116 116 0 1 1 232 0a116 116 0 1 1-232 0z"/>
+</svg>

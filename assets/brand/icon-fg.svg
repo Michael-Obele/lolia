@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="108" height="108" viewBox="0 0 108 108" role="img" aria-label="Lolia">
+  <!--
+    Android adaptive-icon foreground: the mark alone, on transparency, so the
+    launcher can mask it over whatever background colour values/ic_launcher_background
+    declares.
+
+    Adaptive icons give the foreground a 108dp canvas but may crop it to a 72dp
+    shape, so the mark is scaled so its DIAGONAL is 69.5dp - under the crop, and
+    the reason the scale is smaller than it looks. The L's foot reaches the
+    bottom-left corner of the mark box, so it, not the width, sets the limit.
+  -->
+  <g transform="translate(54 54) scale(0.075) translate(-512 -512)">
+    <path fill="#191310" d="M131 232h80v480h256v80H131z"/>
+    <path fill="#4f7de0" fill-rule="evenodd" d="M493 592a200 200 0 1 1 400 0a200 200 0 1 1-400 0zM577 592a116 116 0 1 1 232 0a116 116 0 1 1-232 0z"/>
+  </g>
+</svg>
