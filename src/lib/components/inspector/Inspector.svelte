@@ -19,6 +19,7 @@
 	import { takeOrigin, travel } from '#lib/motion/flip.ts';
 	import { motionOk } from '#lib/motion/reduced.ts';
 	import { stagger } from '#lib/motion/stagger.ts';
+	import { palette } from '#lib/search/palette.svelte.ts';
 	import ScrollArea from '#lib/components/ui/scroll-area/scroll-area.svelte';
 	import ElementImage from './ElementImage.svelte';
 	import ShellDiagram from './ShellDiagram.svelte';
@@ -81,7 +82,10 @@
 	// here, and a key that sometimes does nothing is worse than four extra lines.
 	$effect(() => {
 		const onkeydown = (event: KeyboardEvent) => {
-			if (event.key === 'Escape') goto('/');
+			// bits-ui cancels its own Escape but never stops propagation, so without
+			// this guard Escape in the palette also threw the reader back to `/`.
+			if (event.key !== 'Escape' || event.defaultPrevented || palette.open) return;
+			goto('/');
 		};
 		window.addEventListener('keydown', onkeydown);
 		return () => window.removeEventListener('keydown', onkeydown);

@@ -77,16 +77,22 @@ let opening: Promise<boolean> | null = null;
 /** The library's open promise never settles while another tab blocks the upgrade. */
 function ready(): Promise<boolean> {
 	if (!isBrowser()) return Promise.resolve(false);
-	opening ??= new Promise((resolve) => {
+	opening ??= new Promise<boolean>((resolve) => {
 		const stop = setTimeout(() => resolve(false), OPEN_BUDGET);
 		const settle = (ok: boolean) => {
 			clearTimeout(stop);
-			resolve(ok);
+		resolve(ok);
 		};
 		db.getRawDB().then(
 			() => settle(true),
 			() => settle(false)
 		);
+	}).then((ok) => {
+		// A blocked or failed open must not be remembered: cached false would keep
+		// the whole photo cache dead for the rest of the session after the blocker
+		// went away.
+		if (!ok) opening = null;
+		return ok;
 	});
 	return opening;
 }

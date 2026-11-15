@@ -34,7 +34,23 @@ export default defineConfig({
 	// Without strictPort, a busy port makes vite move to 5175 while Tauri keeps
 	// waiting on 5174, and the desktop window stays blank with no error worth
 	// reading. 5173 is left alone because other projects on this machine use it.
-	server: { port: 5174, strictPort: true },
+	server: {
+		port: 5174,
+		strictPort: true,
+		// Gradle and cargo write tens of thousands of files into these trees.
+		// Watching them exhausts the descriptor limit, and then HMR silently stops
+		// invalidating modules: edits appear to do nothing while the dev server
+		// keeps serving the old build. Nothing under `android/` needs hot reload.
+		watch: {
+			ignored: [
+				'**/android/**',
+				'**/src-tauri/target/**',
+				'**/.svelte-kit/**',
+				'**/build/**',
+				'**/.superpowers/**',
+			],
+		},
+	},
 
 	// `svelte-idb/svelte` ships runes in `.svelte.js`, so the svelte plugin has to
 	// compile them against this app's runtime. Pre-bundled, the optimizer gives

@@ -130,7 +130,7 @@
 	}
 </script>
 
-<ScrollArea orientation="horizontal" class="mx-auto w-full max-w-272 min-w-0">
+<ScrollArea orientation="horizontal" class="mx-auto w-full max-w-[100rem] min-w-0">
 	<div
 		class="table"
 		bind:this={table}
@@ -205,6 +205,9 @@
 		   symbol. The inline padding is the room the focus ring needs at the
 		   scrolled edge. */
 		padding-inline: 0.125rem;
+		/* The cells ask this element how wide they are, so the name can stand down
+		   instead of being cut off mid-word. */
+		container-type: inline-size;
 	}
 
 	/* Subgrid, not a second grid: the cells inherit the table's own tracks, so

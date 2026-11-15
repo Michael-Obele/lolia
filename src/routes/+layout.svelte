@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { page } from '$app/state';
+	import { elements } from '#lib/data/elements.generated.ts';
 	import './layout.css';
 	// Side-effect import: keeps `.dark` in sync with the stored choice after
 	// hydration. First paint is already correct — src/app.html sets the class from
@@ -20,9 +22,31 @@
 	onMount(initPalette);
 
 	let { children }: LayoutProps = $props();
+
+	// Every route must set `document.title`. Without one, SvelteKit's route
+	// announcer falls back to the literal string "untitled page" and reads that
+	// out on every navigation, and the tab is blank.
+	const viewTitles: Record<string, string> = {
+		'/': 'Periodic table',
+		'/list': 'List',
+		'/trends': 'Trends',
+		'/compare': 'Compare',
+		'/about': 'About'
+	};
+
+	const title = $derived.by(() => {
+		const path = page.url.pathname;
+		if (path.startsWith('/element/')) {
+			const symbol = decodeURIComponent(path.slice('/element/'.length)).toLowerCase();
+			const found = elements.find((entry) => entry.symbol.toLowerCase() === symbol);
+			return found ? `${found.name} (${found.symbol}) · Lolia` : 'Element · Lolia';
+		}
+		return `${viewTitles[path] ?? 'Periodic table'} · Lolia`;
+	});
 </script>
 
 <svelte:head>
+	<title>{title}</title>
 	<link rel="icon" href={favicon} />
 </svelte:head>
 

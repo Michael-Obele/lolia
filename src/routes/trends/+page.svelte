@@ -87,10 +87,8 @@
 		<Legend categories={categorySlugs} />
 
 		<p class="note">
-			The points are not links. layerchart's <code>Points</code> mark draws circles
-			with no per-point href, and wrapping a hundred of them in tab stops would cost
-			more than it gives — so the chart stays one inert image and every element in it
-			is one keystroke away in the palette.
+				Pick another metric above to re-plot the same 118 elements. To jump straight
+				to one, open search with <code>Ctrl K</code>, or <code>⌘K</code> on a Mac.
 		</p>
 	</section>
 </main>

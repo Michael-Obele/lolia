@@ -123,4 +123,13 @@
 		text-overflow: ellipsis;
 		white-space: nowrap;
 	}
+
+	/* Below this the tracks are too narrow for a full name, and an ellipsis on
+	   every second cell reads as damage. The symbol, number and category edge
+	   still identify the cell; the name is in the aria-label and the panel. */
+	@container (max-width: 62rem) {
+		.name {
+			display: none;
+		}
+	}
 </style>

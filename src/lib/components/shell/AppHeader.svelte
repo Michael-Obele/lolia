@@ -31,6 +31,9 @@
 	<!-- Screen-only: a printed sheet has nothing to press. `layout.css` hides
 	     this block in `@media print`, which is why it is named here. -->
 	<div class="app-controls flex flex-wrap items-center gap-2">
+		<!-- Full width on a phone so the view switch owns one row and the two
+		     triggers share the next. Left to wrap on its own, the switch pushed
+		     Settings onto a line by itself. -->
 		<nav class="switch" aria-label="View">
 			{#each views as view (view.href)}
 				<a
@@ -60,10 +63,17 @@
 <style>
 	.switch {
 		display: flex;
+		flex-basis: 100%;
 		/* At 200 percent text zoom three labels are wider than a phone; wrapping
 		   them keeps the document from scrolling sideways. */
 		flex-wrap: wrap;
 		gap: 0.25rem;
+	}
+
+	@media (min-width: 640px) {
+		.switch {
+			flex-basis: auto;
+		}
 	}
 
 	/* 2.75rem is the same 44 px touch target the settings trigger uses. */

@@ -318,7 +318,7 @@
 
 	.close {
 		position: absolute;
-		inset-inline-end: 0.25rem;
+		inset-inline-end: 0.75rem;
 		inset-block-start: 50%;
 		translate: 0 -50%;
 		min-block-size: 2.75rem;
