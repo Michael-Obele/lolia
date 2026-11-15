@@ -8,6 +8,13 @@ on:
   push:
     branches: [main]
   pull_request:
+  # The release PR's branch is pushed with GITHUB_TOKEN, and GitHub suppresses
+  # every event that token triggers: the `pull_request` run is created and then
+  # abandoned as a startup failure, so the PR arrives red with no job having run.
+  # `workflow_dispatch` is the documented exception, so release-please.yml asks
+  # for this workflow by name at the PR branch instead. The `pull_request`
+  # trigger stays for the PRs a person opens.
+  workflow_dispatch:
 
 # A newer push makes the older run pointless. Cancel it rather than paying twice.
 concurrency:

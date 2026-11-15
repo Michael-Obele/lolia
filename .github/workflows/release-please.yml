@@ -71,6 +71,28 @@ jobs:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
+      # The same suppression that hides the tag from release.yml hides the branch
+      # from ci.yml: whatever GITHUB_TOKEN touches, GitHub creates a run for and
+      # then discards. Ask ci.yml for a real check of the PR branch, or every
+      # release PR is merged without ever having been tested.
+      - name: Check the release PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PRS: ${{ steps.release.outputs.prs }}
+        run: |
+          set -euo pipefail
+          # Manifest mode reports an array of PRs under `prs`; a lone package
+          # may report one object under `pr` instead. Accept either shape.
+          branch=$(printf '%s' "${PRS:-[]}" |
+            jq -r 'if type == "array" then (.[0].headBranchName // "") else (.headBranchName // "") end' \
+            2>/dev/null || true)
+          if [ -z "$branch" ]; then
+            echo "No release pull request was opened or updated - nothing to check."
+            exit 0
+          fi
+          echo "Dispatching CI at $branch"
+          gh workflow run ci.yml --ref "$branch"
+
       # The tag exists but no workflow heard about it (see `actions: write`
       # above), so ask release.yml for this tag directly. It is dispatched from
       # `main` because workflow_dispatch only sees the workflow file on the ref

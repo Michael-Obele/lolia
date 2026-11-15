@@ -10,9 +10,18 @@ import { readFileSync } from "node:fs";
 // Verified against release-please 17.11.2: at 0.1.0, `fix`/`feat`/`perf`/
 // `refactor`/`chore`/`docs`/`ci`/`test`/`style` all give 0.1.1, `feat!` and a
 // `BREAKING CHANGE` footer give 0.2.0, and `Release-As: 1.0.0` gives 1.0.0.
+//
+// A patch is only ever *offered*, though. `strategies/base.ts` renders the
+// changelog first and returns `undefined` — no release at all — when that
+// rendering is empty, discarding the version it had already computed. A
+// `hidden: true` changelog section is therefore a release switch, not a
+// formatting choice. See the last describe.
 
 const read = (path: string) =>
   readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
+
+/** One `changelog-sections` entry. `hidden` also decides releasability. */
+type ChangelogSection = { type: string; section: string; hidden?: boolean };
 
 type Config = {
   "release-type"?: string;
@@ -23,6 +32,7 @@ type Config = {
   "include-v-in-tag"?: boolean;
   draft?: boolean;
   "force-tag-creation"?: boolean;
+  "changelog-sections"?: ChangelogSection[];
   packages?: Record<string, unknown>;
 };
 
@@ -93,5 +103,41 @@ describe("the manifest", () => {
 
   test("is a plain x.y.z, which is what the Android versionCode scheme can express", () => {
     expect(/^\d+\.\d+\.\d+$/.test(manifest["."] ?? "")).toBe(true);
+  });
+});
+
+describe("what release-please is willing to release", () => {
+  const sections = config["changelog-sections"] ?? [];
+
+  test("no section is hidden, because a hidden section releases nothing", () => {
+    // `hidden: true` reads like a changelog setting and is not one. The gate
+    // sits above the strategy: an empty rendering of the release notes means
+    // `return undefined`, so a commit whose type is hidden produces no notes,
+    // produces no release, and the next version is thrown away after it was
+    // already computed. That is exactly how 0.1.7 went missing — v0.1.6 was
+    // followed by a single `chore(dev)` commit, release-please logged "No user
+    // facing commits found ... skipping", and no build was ever dispatched
+    // while every workflow on main reported green.
+    expect(sections.filter((section) => section.hidden === true)).toEqual([]);
+  });
+
+  test("every type the config names has a section to land in", () => {
+    // A type with no section is the same trap by another route: nothing is
+    // rendered for it either, so it releases nothing.
+    const declared = new Set(sections.map((section) => section.type));
+    const expected = [
+      "feat",
+      "fix",
+      "perf",
+      "refactor",
+      "docs",
+      "ci",
+      "build",
+      "revert",
+      "test",
+      "style",
+      "chore",
+    ];
+    expect([...declared].sort()).toEqual(expected.sort());
   });
 });

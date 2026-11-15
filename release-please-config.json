@@ -44,18 +44,15 @@
         },
         {
             "type": "test",
-            "section": "Tests",
-            "hidden": true
+            "section": "Tests"
         },
         {
             "type": "style",
-            "section": "Style",
-            "hidden": true
+            "section": "Style"
         },
         {
             "type": "chore",
-            "section": "Chores",
-            "hidden": true
+            "section": "Chores"
         }
     ],
     "packages": {
