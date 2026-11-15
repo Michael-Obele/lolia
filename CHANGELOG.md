@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.9](https://github.com/Michael-Obele/lolia/compare/v0.1.8...v0.1.9) (2026-11-15)
+
+
+### Features
+
+* **brand:** give the app its own logo ([b8571ec](https://github.com/Michael-Obele/lolia/commit/b8571ecb544b556a706e1197ef69e6a4acbb14da))
+
 ## [0.1.8](https://github.com/Michael-Obele/lolia/compare/v0.1.7...v0.1.8) (2026-11-15)
 
 
