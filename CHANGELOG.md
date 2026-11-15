@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.8](https://github.com/Michael-Obele/lolia/compare/v0.1.7...v0.1.8) (2026-11-15)
+
+
+### Fixes
+
+* **android:** stop shipping the live-reload shell ([ac80643](https://github.com/Michael-Obele/lolia/commit/ac8064319caa6658743482872b7fe7d284352167))
+
 ## [0.1.7](https://github.com/Michael-Obele/lolia/compare/v0.1.6...v0.1.7) (2026-11-15)
 
 
