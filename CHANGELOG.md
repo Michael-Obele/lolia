@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.10](https://github.com/Michael-Obele/lolia/compare/v0.1.9...v0.1.10) (2026-11-16)
+
+
+### Fixes
+
+* **android:** sign the APK with apksigner so it installs ([f6a4875](https://github.com/Michael-Obele/lolia/commit/f6a4875b0d40f8fcb36ab5f5fefe526aaa2fabee))
+
 ## [0.1.9](https://github.com/Michael-Obele/lolia/compare/v0.1.8...v0.1.9) (2026-11-15)
 
 
