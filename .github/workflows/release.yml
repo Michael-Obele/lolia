@@ -156,6 +156,15 @@ jobs:
             "platforms;android-36" \
             "build-tools;36.0.0"
 
+      # Capacitor shells out to a bare `apksigner`, and android-actions/setup-android
+      # puts cmdline-tools and platform-tools on PATH but not build-tools, so the
+      # binary the CLI needs is not findable without this.
+      - name: Put the SDK build-tools on PATH
+        run: |
+          buildtools=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          echo "Using $buildtools"
+          echo "$buildtools" >> "$GITHUB_PATH"
+
       # The web assets have to exist before `cap sync` copies them into the
       # Android project, and `cap sync` has to run before Gradle sees a project.
       - name: Build the web app and sync it into Android
@@ -207,14 +216,29 @@ jobs:
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           if [ "${{ steps.keystore.outputs.present }}" = "true" ]; then
-            for type in AAB APK; do
-              bunx cap build android \
-                --androidreleasetype "$type" \
-                --keystorepath "$RUNNER_TEMP/lolia.keystore" \
-                --keystorepass "$STORE_PASSWORD" \
-                --keystorealias "$KEY_ALIAS" \
-                --keystorealiaspass "$KEY_PASSWORD"
-            done
+            # The bundle is JAR-signed, which is what Play expects of an AAB.
+            bunx cap build android \
+              --androidreleasetype AAB \
+              --keystorepath "$RUNNER_TEMP/lolia.keystore" \
+              --keystorepass "$STORE_PASSWORD" \
+              --keystorealias "$KEY_ALIAS" \
+              --keystorealiaspass "$KEY_PASSWORD"
+
+            # The APK is NOT. Capacitor defaults `--signing-type` to jarsigner
+            # (tasks/build.js:27), and a JAR signature is both v1-only and a
+            # rewrite of the archive. Android 11+ refuses v1 outright for
+            # targetSdk 30+ ("Target SDK version 36 requires a minimum of
+            # signature scheme v2") and the rewrite leaves resources.arsc off
+            # its 4-byte boundary ("Failure [-124]"). v0.1.9 shipped exactly
+            # that and would not install on a Pixel 10. apksigner emits v2/v3
+            # and preserves the alignment zipalign gave the unsigned APK.
+            bunx cap build android \
+              --androidreleasetype APK \
+              --signing-type apksigner \
+              --keystorepath "$RUNNER_TEMP/lolia.keystore" \
+              --keystorepass "$STORE_PASSWORD" \
+              --keystorealias "$KEY_ALIAS" \
+              --keystorealiaspass "$KEY_PASSWORD"
           else
             echo "No keystore secret: building UNSIGNED. The AAB cannot go to Play, but it installs on a device."
             for type in AAB APK; do
@@ -222,6 +246,16 @@ jobs:
                 echo "::warning::cap build android --androidreleasetype $type exited non-zero (expected without keystore options)."
             done
           fi
+
+      # Neither fault shows up as a build error, so prove the artifact is one a
+      # device will actually accept rather than trusting the exit code.
+      - name: Verify the APK a device will accept
+        if: steps.keystore.outputs.present == 'true'
+        run: |
+          apk=android/app/build/outputs/apk/release/app-release-signed.apk
+          zipalign -c 4 "$apk"
+          apksigner verify "$apk"
+          echo "$apk is 4-byte aligned and carries a v2 signature."
 
       - name: Report what was built
         run: |
